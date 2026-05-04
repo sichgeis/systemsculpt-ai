@@ -231,7 +231,7 @@ describe("AtMentionMenu", () => {
     menu.unload();
   });
 
-  it("replaces the selected mention with plain text and adds the file to context", () => {
+  it("replaces the selected mention with an @ file name and adds the file to context", () => {
     const input = document.createElement("textarea");
     input.value = "I like to read @book";
     input.selectionStart = input.selectionEnd = input.value.length;
@@ -268,16 +268,16 @@ describe("AtMentionMenu", () => {
     const handled = menu.handleKeydown(new window.KeyboardEvent("keydown", { key: "Enter" }));
 
     expect(handled).toBe(true);
-    expect(input.value).toBe("I like to read book");
-    expect(input.selectionStart).toBe("I like to read book".length);
-    expect(input.selectionEnd).toBe("I like to read book".length);
+    expect(input.value).toBe("I like to read @book");
+    expect(input.selectionStart).toBe("I like to read @book".length);
+    expect(input.selectionEnd).toBe("I like to read @book".length);
     expect(inputListener).toHaveBeenCalledTimes(1);
     expect(addFileToContext).toHaveBeenCalledWith(files[0]);
     expect(chatView.app.workspace.openLinkText).not.toHaveBeenCalled();
     menu.unload();
   });
 
-  it("inserts an already-attached file name without re-adding or opening the file", () => {
+  it("inserts an already-attached @ file name without re-adding or opening the file", () => {
     const input = document.createElement("textarea");
     input.value = "I like to read @book";
     input.selectionStart = input.selectionEnd = input.value.length;
@@ -309,7 +309,7 @@ describe("AtMentionMenu", () => {
 
     menu.handleKeydown(new window.KeyboardEvent("keydown", { key: "Enter" }));
 
-    expect(input.value).toBe("I like to read book");
+    expect(input.value).toBe("I like to read @book");
     expect(chatView.addFileToContext).not.toHaveBeenCalled();
     expect(chatView.app.workspace.openLinkText).not.toHaveBeenCalled();
     menu.unload();

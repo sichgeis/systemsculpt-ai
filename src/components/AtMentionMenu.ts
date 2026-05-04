@@ -507,7 +507,7 @@ export class AtMentionMenu extends Component {
 
     const before = value.substring(0, start);
     const after = value.substring(end);
-    const replacement = file.basename || file.name.replace(/\.[^.]+$/, "");
+    const replacement = `@${file.basename || file.name.replace(/\.[^.]+$/, "")}`;
     const cursorPosition = before.length + replacement.length;
 
     this.inputElement.value = before + replacement + after;
