@@ -230,4 +230,88 @@ describe("AtMentionMenu", () => {
     expect(titles).toEqual(["beta"]);
     menu.unload();
   });
+
+  it("replaces the selected mention with plain text and adds the file to context", () => {
+    const input = document.createElement("textarea");
+    input.value = "I like to read @book";
+    input.selectionStart = input.selectionEnd = input.value.length;
+    document.body.appendChild(input);
+
+    const inputListener = jest.fn();
+    input.addEventListener("input", inputListener);
+
+    const files = [createMockFile("notes/book.md", 300)];
+    const addFileToContext = jest.fn(async () => {});
+    const chatView: any = {
+      plugin: {
+        vaultFileCache: {
+          getAllFiles: () => files,
+        },
+      },
+      app: {
+        vault: { getFiles: () => files },
+        workspace: { openLinkText: jest.fn() },
+      },
+      contextManager: {
+        hasContextFile: jest.fn(() => false),
+      },
+      addFileToContext,
+    };
+
+    const menu = new AtMentionMenu(chatView, input);
+    menu.load();
+    menu.show(15, input.value.length, "book");
+
+    jest.runOnlyPendingTimers();
+    jest.runOnlyPendingTimers();
+
+    const handled = menu.handleKeydown(new window.KeyboardEvent("keydown", { key: "Enter" }));
+
+    expect(handled).toBe(true);
+    expect(input.value).toBe("I like to read book");
+    expect(input.selectionStart).toBe("I like to read book".length);
+    expect(input.selectionEnd).toBe("I like to read book".length);
+    expect(inputListener).toHaveBeenCalledTimes(1);
+    expect(addFileToContext).toHaveBeenCalledWith(files[0]);
+    expect(chatView.app.workspace.openLinkText).not.toHaveBeenCalled();
+    menu.unload();
+  });
+
+  it("inserts an already-attached file name without re-adding or opening the file", () => {
+    const input = document.createElement("textarea");
+    input.value = "I like to read @book";
+    input.selectionStart = input.selectionEnd = input.value.length;
+    document.body.appendChild(input);
+
+    const files = [createMockFile("notes/book.md", 300)];
+    const chatView: any = {
+      plugin: {
+        vaultFileCache: {
+          getAllFiles: () => files,
+        },
+      },
+      app: {
+        vault: { getFiles: () => files },
+        workspace: { openLinkText: jest.fn() },
+      },
+      contextManager: {
+        hasContextFile: jest.fn((wikiLink: string) => wikiLink === "[[notes/book.md]]"),
+      },
+      addFileToContext: jest.fn(async () => {}),
+    };
+
+    const menu = new AtMentionMenu(chatView, input);
+    menu.load();
+    menu.show(15, input.value.length, "book");
+
+    jest.runOnlyPendingTimers();
+    jest.runOnlyPendingTimers();
+
+    menu.handleKeydown(new window.KeyboardEvent("keydown", { key: "Enter" }));
+
+    expect(input.value).toBe("I like to read book");
+    expect(chatView.addFileToContext).not.toHaveBeenCalled();
+    expect(chatView.app.workspace.openLinkText).not.toHaveBeenCalled();
+    menu.unload();
+  });
 });

@@ -489,7 +489,7 @@ export class AtMentionMenu extends Component {
     }
   }
 
-  private removeAtTokenFromInput(): void {
+  private replaceAtTokenInInput(file: TFile): void {
     const value = this.inputElement.value;
     const start = this.triggerIndex;
 
@@ -507,21 +507,24 @@ export class AtMentionMenu extends Component {
 
     const before = value.substring(0, start);
     const after = value.substring(end);
-    this.inputElement.value = before + after;
-    this.inputElement.selectionStart = this.inputElement.selectionEnd = start;
-    this.inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+    const replacement = file.basename || file.name.replace(/\.[^.]+$/, "");
+    const cursorPosition = before.length + replacement.length;
+
+    this.inputElement.value = before + replacement + after;
+    this.inputElement.selectionStart = this.inputElement.selectionEnd = cursorPosition;
+    const EventCtor = this.inputElement.ownerDocument.defaultView?.Event ?? Event;
+    this.inputElement.dispatchEvent(new EventCtor("input", { bubbles: true }));
   }
 
   private async chooseSelected(): Promise<void> {
     const item = this.suggestions[this.selectedIndex];
     if (!item) return;
 
-    this.removeAtTokenFromInput();
+    this.replaceAtTokenInInput(item.file);
     this.hide();
 
     try {
       if (item.attached) {
-        this.chatView.app.workspace.openLinkText(item.file.path, "", true);
         this.inputElement.focus();
         return;
       }
