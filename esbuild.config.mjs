@@ -3,6 +3,7 @@ import process from "process";
 import builtins from "builtin-modules";
 import fs from "fs";
 import path from "path";
+import { spawnSync } from "child_process";
 import { BuildLogger, formatBytes, formatDuration } from "./build-logger.mjs";
 
 const banner =
@@ -18,6 +19,19 @@ const cssLogger = new BuildLogger("CSS");
 
 const cssDir = path.join(process.cwd(), "src", "css");
 const indexCssPath = path.join(cssDir, "index.css");
+
+const getBuildRepositoryUrl = () => {
+	const explicit = String(process.env.SYSTEMSCULPT_BUILD_REPOSITORY || "").trim();
+	if (explicit) return explicit;
+
+	const result = spawnSync("git", ["config", "--get", "remote.origin.url"], {
+		cwd: process.cwd(),
+		encoding: "utf8",
+		stdio: ["ignore", "pipe", "ignore"],
+	});
+
+	return result.status === 0 ? String(result.stdout || "").trim() : "";
+};
 
 // Auto-sync built artifacts after each build/rebuild.
 // - Set `SYSTEMSCULPT_AUTO_SYNC_PATH` to a plugin directory to sync into a real vault.
@@ -111,6 +125,7 @@ const buildOptions = {
 	define: {
 		// Provide a stable import.meta.url so libraries using fileURLToPath don't explode in browser-ish environments.
 		"import.meta.url": '"file:///systemsculpt-plugin/main.js"',
+		"SYSTEMSCULPT_BUILD_REPOSITORY": JSON.stringify(getBuildRepositoryUrl()),
 	},
 	external: [
 		"obsidian",

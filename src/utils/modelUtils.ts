@@ -223,8 +223,8 @@ export function getProviderDisplayPrefix(providerId: string): string {
 }
 
 /**
- * Build a user-facing label that includes a bracketed provider prefix
- * followed by the model's display name.
+ * Build a user-facing label that includes the model's display name
+ * followed by a bracketed provider suffix.
  * Accepts canonical or legacy model IDs.
  */
 export function getModelLabelWithProvider(modelId: string): string {
@@ -234,8 +234,8 @@ export function getModelLabelWithProvider(modelId: string): string {
   const canonical = ensureCanonicalId(modelId);
   const parsed = parseCanonicalId(canonical);
   if (parsed) {
-    const prefix = getProviderDisplayPrefix(parsed.providerId);
-    return `${prefix}${getDisplayName(canonical)}`;
+    const providerLabel = getProviderDisplayPrefix(parsed.providerId).trim();
+    return `${getDisplayName(canonical)} ${providerLabel}`.trim();
   }
   // Fallback for unexpected formats
   return getDisplayName(modelId);

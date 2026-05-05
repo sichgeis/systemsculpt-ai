@@ -261,13 +261,13 @@ describe("modelUtils", () => {
   });
 
   describe("getModelLabelWithProvider", () => {
-    it("combines provider prefix with model name", () => {
-      expect(getModelLabelWithProvider("openai@@gpt-4")).toBe("[OPENAI] gpt-4");
+    it("combines model name with provider suffix", () => {
+      expect(getModelLabelWithProvider("openai@@gpt-4")).toBe("gpt-4 [OPENAI]");
     });
 
     it("handles systemsculpt provider specially", () => {
       expect(getModelLabelWithProvider("systemsculpt@@vault-agent")).toBe(
-        "[SS AI] vault-agent"
+        "vault-agent [SS AI]"
       );
     });
 
@@ -276,7 +276,7 @@ describe("modelUtils", () => {
     });
 
     it("migrates legacy format", () => {
-      expect(getModelLabelWithProvider("openai/gpt-4")).toBe("[OPENAI] gpt-4");
+      expect(getModelLabelWithProvider("openai/gpt-4")).toBe("gpt-4 [OPENAI]");
     });
   });
 

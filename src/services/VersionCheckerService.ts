@@ -6,8 +6,9 @@
 import { requestUrl, Notice, App } from "obsidian";
 import SystemSculptPlugin from "../main";
 import { DEVELOPMENT_MODE } from "../constants/api";
-import { GITHUB_API } from "../constants/externalServices";
 import { API_BASE_URL, SYSTEMSCULPT_API_ENDPOINTS } from "../constants/api";
+
+declare const SYSTEMSCULPT_BUILD_REPOSITORY: string | undefined;
 
 export interface VersionInfo {
   currentVersion: string;
@@ -19,8 +20,9 @@ export interface VersionInfo {
 
 export class VersionCheckerService {
   private static instance: VersionCheckerService | null = null;
+  private static readonly OFFICIAL_REPOSITORY = "systemsculpt/obsidian-systemsculpt-ai";
   private currentVersion: string;
-  private githubRepo: string = "systemsculpt/obsidian-systemsculpt-ai";
+  private githubRepo: string = VersionCheckerService.OFFICIAL_REPOSITORY;
   private pluginId: string = "systemsculpt-ai";
   private cachedVersionInfo: VersionInfo | null = null;
   private lastChecked: number = 0;
@@ -47,6 +49,43 @@ export class VersionCheckerService {
         this.devModeUpdateState = savedState;
       }
     }
+  }
+
+  private static normalizeRepositorySlug(repositoryUrl: string | undefined | null): string {
+    const value = String(repositoryUrl || "").trim();
+    if (!value) return "";
+
+    const match = value.match(/github\.com[:/](.+?)(?:\.git)?$/i);
+    const slug = match ? match[1] : value;
+    return slug
+      .replace(/^https?:\/\//i, "")
+      .replace(/^git@/i, "")
+      .replace(/^github\.com[:/]/i, "")
+      .replace(/\.git$/i, "")
+      .replace(/^\/+|\/+$/g, "")
+      .toLowerCase();
+  }
+
+  private static getBuildRepositorySlug(): string {
+    const globalRepository = (globalThis as any).SYSTEMSCULPT_BUILD_REPOSITORY;
+    if (typeof globalRepository === "string" && globalRepository.trim()) {
+      return VersionCheckerService.normalizeRepositorySlug(globalRepository);
+    }
+
+    try {
+      if (typeof SYSTEMSCULPT_BUILD_REPOSITORY === "string" && SYSTEMSCULPT_BUILD_REPOSITORY.trim()) {
+        return VersionCheckerService.normalizeRepositorySlug(SYSTEMSCULPT_BUILD_REPOSITORY);
+      }
+    } catch {
+      // Jest and unbundled test runs do not define the build constant.
+    }
+
+    return "";
+  }
+
+  private isOfficialDistribution(): boolean {
+    const buildRepository = VersionCheckerService.getBuildRepositorySlug();
+    return !buildRepository || buildRepository === VersionCheckerService.OFFICIAL_REPOSITORY;
   }
   
   /**
@@ -83,6 +122,10 @@ export class VersionCheckerService {
    * Starts the periodic update checker
    */
   public startPeriodicUpdateCheck(): void {
+    if (!this.isOfficialDistribution()) {
+      return;
+    }
+
     // Don't start periodic checks if notifications are disabled (unless in development mode)
     if (DEVELOPMENT_MODE !== "DEVELOPMENT" && !this.plugin.settings.showUpdateNotifications) {
       return;
@@ -112,6 +155,10 @@ export class VersionCheckerService {
    * if already on the latest version
    */
   private async checkForUpdatesQuietly(): Promise<void> {
+    if (!this.isOfficialDistribution()) {
+      return;
+    }
+
     // Don't check if notifications are disabled (unless in development mode)
     if (DEVELOPMENT_MODE !== "DEVELOPMENT" && !this.plugin.settings.showUpdateNotifications) {
       return;
@@ -151,6 +198,10 @@ export class VersionCheckerService {
    * @returns Version information
    */
   public async checkVersion(forceRefresh = false): Promise<VersionInfo> {
+    if (!this.isOfficialDistribution()) {
+      return this.getSkippedVersionInfo();
+    }
+
     const now = Date.now();
     
     // Return cached result if available and not expired
@@ -228,6 +279,10 @@ export class VersionCheckerService {
     }
     
     // Production mode logic
+    if (!this.isOfficialDistribution()) {
+      return;
+    }
+
     // Check if user has just updated to a new version
     const lastKnownVersion = this.plugin.settings.lastKnownVersion;
     const hasJustUpdated = lastKnownVersion && lastKnownVersion !== this.currentVersion && 
@@ -596,6 +651,16 @@ export class VersionCheckerService {
     } catch (error) {
       return this.currentVersion;
     }
+  }
+
+  private getSkippedVersionInfo(): VersionInfo {
+    return {
+      currentVersion: this.currentVersion,
+      latestVersion: this.currentVersion,
+      isLatest: true,
+      releaseUrl: `https://github.com/${this.githubRepo}/releases/latest`,
+      updateUrl: `obsidian://show-plugin?id=${this.pluginId}`
+    };
   }
 
   /**

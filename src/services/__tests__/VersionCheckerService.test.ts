@@ -41,6 +41,7 @@ describe("VersionCheckerService", () => {
 
     // Clear localStorage
     localStorage.clear();
+    delete (globalThis as any).SYSTEMSCULPT_BUILD_REPOSITORY;
 
     app = new App();
     plugin = {
@@ -108,6 +109,27 @@ describe("VersionCheckerService", () => {
   });
 
   describe("checkVersion", () => {
+    it("skips upstream update checks for fork builds", async () => {
+      (globalThis as any).SYSTEMSCULPT_BUILD_REPOSITORY = "https://github.com/sichgeis/systemsculpt-ai.git";
+      VersionCheckerService.clearInstance();
+      service = VersionCheckerService.getInstance("1.0.0", app, plugin);
+
+      const { httpRequest } = await import("../../utils/httpClient");
+      (httpRequest as jest.Mock).mockResolvedValue({
+        status: 200,
+        json: { data: { latestVersion: "2.0.0" } },
+      });
+
+      const result = await service.checkVersion(true);
+
+      expect(httpRequest).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        currentVersion: "1.0.0",
+        latestVersion: "1.0.0",
+        isLatest: true,
+      });
+    });
+
     it("returns cached result if not expired", async () => {
       const { httpRequest } = await import("../../utils/httpClient");
       (httpRequest as jest.Mock).mockResolvedValue({
@@ -311,6 +333,26 @@ describe("VersionCheckerService", () => {
   });
 
   describe("checkForUpdatesOnStartup", () => {
+    it("does not schedule upstream startup checks for fork builds", async () => {
+      (globalThis as any).SYSTEMSCULPT_BUILD_REPOSITORY = "git@github.com:sichgeis/systemsculpt-ai.git";
+      VersionCheckerService.clearInstance();
+      service = VersionCheckerService.getInstance("1.0.0", app, plugin);
+
+      const { httpRequest } = await import("../../utils/httpClient");
+      (httpRequest as jest.Mock).mockResolvedValue({
+        status: 200,
+        json: { data: { latestVersion: "2.0.0" } },
+      });
+
+      const promise = service.checkForUpdatesOnStartup(100);
+      jest.advanceTimersByTime(500);
+      await promise;
+
+      expect(httpRequest).not.toHaveBeenCalled();
+      expect(plugin.getSettingsManager().updateSettings).not.toHaveBeenCalled();
+      expect(document.querySelector(".systemsculpt-update-drawer")).toBeNull();
+    });
+
     it("waits for delay before checking", async () => {
       const { httpRequest } = await import("../../utils/httpClient");
       (httpRequest as jest.Mock).mockResolvedValue({
