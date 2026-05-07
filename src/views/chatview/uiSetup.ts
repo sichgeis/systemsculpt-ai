@@ -14,6 +14,44 @@ import { attachOverlapInsetManager } from "../../core/ui/services/OverlapInsetSe
 // ────────────────────────────────────────────────────────────────────────────
 import type SystemSculptPlugin from '../../main';
 
+const IMAGE_CONTEXT_EXTENSIONS = new Set([
+  "avif",
+  "bmp",
+  "gif",
+  "heic",
+  "heif",
+  "jpeg",
+  "jpg",
+  "png",
+  "svg",
+  "webp",
+]);
+
+function getContextFilePath(contextFile: string): string {
+  const trimmed = (contextFile || "").trim();
+  const withoutEmbedPrefix = trimmed.startsWith("!") ? trimmed.slice(1).trim() : trimmed;
+  const wikiMatch = withoutEmbedPrefix.match(/^\[\[(.*?)\]\]$/);
+  const linkTarget = wikiMatch ? wikiMatch[1] : withoutEmbedPrefix;
+  return linkTarget.split("|", 1)[0].trim();
+}
+
+function hasImageContext(chatView: ChatView): boolean {
+  const contextFiles = chatView.contextManager?.getContextFiles?.();
+  if (!contextFiles || contextFiles.size === 0) {
+    return false;
+  }
+
+  for (const contextFile of contextFiles) {
+    const filePath = getContextFilePath(contextFile);
+    const extension = filePath.split(".").pop()?.toLowerCase();
+    if (extension && IMAGE_CONTEXT_EXTENSIONS.has(extension)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export const uiSetup = {
   onOpen: async function(chatView: ChatView): Promise<void> {
     // Ensure core Mermaid plugin is enabled for diagram rendering
@@ -101,6 +139,14 @@ export const uiSetup = {
         }
       },
       plugin: chatView.plugin,
+    });
+
+    const updateCompatibilityForContext = () => {
+      void uiSetup.updateToolCompatibilityWarning(chatView);
+    };
+    document.addEventListener("systemsculpt:context-changed", updateCompatibilityForContext);
+    chatView.register(() => {
+      document.removeEventListener("systemsculpt:context-changed", updateCompatibilityForContext);
     });
 
     // Messages container
@@ -851,7 +897,7 @@ export const uiSetup = {
       const imageIncompat = !imageCompat.isCompatible && imageCompat.confidence === "high";
 
       const shouldWarnTools = chatView.agentMode && toolIncompat;
-      const shouldWarnImages = imageIncompat;
+      const shouldWarnImages = imageIncompat && hasImageContext(chatView);
 
       if (shouldWarnTools || shouldWarnImages) {
         // Create banner if it doesn't exist

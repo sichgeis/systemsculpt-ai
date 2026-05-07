@@ -38,10 +38,10 @@
   gap: 8px;
   padding: 8px 12px;
   margin: 0 8px 8px 8px;
-  background-color: var(--background-modifier-error);
-  border: 1px solid var(--background-modifier-error-hover);
+  background-color: color-mix(in srgb, var(--background-modifier-warning, var(--text-warning)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-warning) 32%, transparent);
   border-radius: var(--radius-m);
-  color: var(--text-error);
+  color: var(--text-warning);
   font-size: var(--font-ui-small);
 }
 
@@ -54,7 +54,7 @@
 .systemsculpt-tool-warning-icon svg {
   width: 16px;
   height: 16px;
-  stroke: var(--text-error);
+  stroke: var(--text-warning);
 }
 
 .systemsculpt-tool-warning-text {
