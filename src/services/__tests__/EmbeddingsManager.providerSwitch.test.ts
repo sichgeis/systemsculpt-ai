@@ -86,7 +86,7 @@ function createPluginStub(settingsOverrides: Record<string, any> = {}) {
     embeddingsQuietPeriodMs: 500,
     licenseKey: "fake-license",
     licenseValid: true,
-    serverUrl: "https://api.systemsculpt.com/api/v1",
+    serverUrl: "https://example.test/api/v1",
     ...settingsOverrides,
   };
 
@@ -422,7 +422,7 @@ describe("EmbeddingsManager provider switching", () => {
     it("recreates the provider when license key or base URL changes", () => {
       const pluginStub = createPluginStub({
         licenseKey: "old-license",
-        serverUrl: "https://api.systemsculpt.com/api/v1",
+        serverUrl: "https://example.test/api/v1",
       });
 
       const manager = new EmbeddingsManager(pluginStub.app as any, pluginStub as any);
@@ -437,7 +437,7 @@ describe("EmbeddingsManager provider switching", () => {
       expect((updatedProvider as any).licenseKey).toBe("new-license");
 
       const providerAfterLicense = updatedProvider;
-      pluginStub.settings.serverUrl = "https://notes.systemsculpt.com/api/v1";
+      pluginStub.settings.serverUrl = "https://notes.example.test/api/v1";
       manager.syncFromSettings();
 
       const updatedProviderAfterUrl = (manager as any).provider;

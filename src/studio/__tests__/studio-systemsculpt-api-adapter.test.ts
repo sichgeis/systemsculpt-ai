@@ -21,7 +21,7 @@ function createPluginStub() {
       version: "4.13.0",
     },
     settings: {
-      serverUrl: "https://api.systemsculpt.com",
+      serverUrl: "imported://example.test",
       licenseKey: "license_test",
       selectedModelId: "openai/gpt-5-mini",
       imageGenerationDefaultModelId: "openai/gpt-5-image-mini",

@@ -2,11 +2,6 @@ import { App, Notice, TFile, setIcon } from "obsidian";
 import { StandardModal } from "../core/ui/modals/standard/StandardModal";
 import type SystemSculptPlugin from "../main";
 import { YouTubeMetadataService, type YouTubeMetadata } from "../services/YouTubeMetadataService";
-import {
-  YouTubeTranscriptService,
-  type YouTubeTranscriptResult,
-  type CaptionTrack,
-} from "../services/YouTubeTranscriptService";
 import { areLanguageCodesEquivalent, getLanguageName } from "../constants/languages";
 import type { StreamEvent } from "../streaming/types";
 
@@ -33,6 +28,17 @@ interface ContentToggleState {
 }
 
 type GeneratedContent = Partial<Record<ContentType, string>>;
+type CaptionTrack = { languageCode: string; languageName?: string; name?: string; kind?: string; isTranslatable?: boolean };
+type YouTubeTranscriptResult = {
+  text: string;
+  lang: string;
+  transcript?: string;
+  language?: string;
+  title?: string;
+  segments?: unknown[];
+  availableLanguages?: CaptionTrack[];
+  metadata?: { availableLangs?: string[] };
+};
 
 // ============================================================================
 // Modal Implementation
@@ -44,7 +50,6 @@ type GeneratedContent = Partial<Record<ContentType, string>>;
 export class YouTubeCanvasModal extends StandardModal {
   private readonly plugin: SystemSculptPlugin;
   private readonly metadataService: YouTubeMetadataService;
-  private readonly transcriptService: YouTubeTranscriptService;
 
   // UI Elements
   private urlInput: HTMLInputElement | null = null;
@@ -80,7 +85,6 @@ export class YouTubeCanvasModal extends StandardModal {
     super(app);
     this.plugin = plugin;
     this.metadataService = YouTubeMetadataService.getInstance();
-    this.transcriptService = YouTubeTranscriptService.getInstance(plugin);
     this.setSize("large");
     this.modalEl.addClass("ss-youtube-canvas-modal");
   }
@@ -460,28 +464,7 @@ export class YouTubeCanvasModal extends StandardModal {
     this.disableInputs(true);
 
     try {
-      const requestedLanguage = this.selectedLanguage || undefined;
-      this.transcript = await this.transcriptService.getTranscript(this.currentUrl, {
-        lang: requestedLanguage,
-      });
-      this.syncLanguagesFromTranscriptMetadata();
-
-      if (
-        requestedLanguage &&
-        this.transcript?.lang &&
-        !areLanguageCodesEquivalent(requestedLanguage, this.transcript.lang)
-      ) {
-        new Notice(
-          `Transcript returned in ${getLanguageName(this.transcript.lang)} instead of ${getLanguageName(requestedLanguage)}.`,
-          6000
-        );
-      }
-
-      this.renderTranscript();
-      this.renderLanguageSelector();
-      this.buildToggleSection();
-      this.setState("transcript_ready");
-      this.updateStatus(`Transcript ready (${getLanguageName(this.transcript.lang)})`, "success");
+      throw new Error("YouTube transcript proxy is unavailable in this fork.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to fetch transcript";
       this.updateStatus(message, "error");

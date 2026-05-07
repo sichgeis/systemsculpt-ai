@@ -55,7 +55,7 @@ describe("Studio node config validation", () => {
 
     const result = validateNodeConfig(definition!, {
       method: "INVALID",
-      url: "https://api.systemsculpt.com",
+      url: "imported://example.test",
       headers: {},
     });
 

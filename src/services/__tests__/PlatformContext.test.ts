@@ -115,7 +115,7 @@ describe("PlatformContext", () => {
       mockMobileDetection.isMobileDevice.mockReturnValue(false);
       const context = PlatformContext.get();
 
-      expect(context.preferredTransport({ endpoint: "https://systemsculpt.com/api/plugin/youtube/transcripts" })).toBe("fetch");
+      expect(context.preferredTransport({ endpoint: "https://example.test/plugin/youtube/transcripts" })).toBe("fetch");
     });
 
     it('returns "fetch" for non-blocked endpoints on desktop', () => {
@@ -159,7 +159,7 @@ describe("PlatformContext", () => {
       mockMobileDetection.isMobileDevice.mockReturnValue(false);
       const context = PlatformContext.get();
 
-      expect(context.supportsStreaming({ endpoint: "https://systemsculpt.com/api/plugin/youtube/transcripts" })).toBe(true);
+      expect(context.supportsStreaming({ endpoint: "https://example.test/plugin/youtube/transcripts" })).toBe(true);
     });
 
     it("returns true when no endpoint specified on desktop", () => {

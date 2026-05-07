@@ -216,24 +216,6 @@ export class StudioService {
       changed = true;
     }
 
-    const hasStudioNetwork = policy.grants.some(
-      (grant) =>
-        grant.capability === "network" &&
-        (grant.scope.allowedDomains || []).some((domain) => domain === "api.systemsculpt.com")
-    );
-    if (!hasStudioNetwork) {
-      policy.grants.push({
-        id: randomId("grant"),
-        capability: "network",
-        scope: {
-          allowedDomains: ["api.systemsculpt.com", "systemsculpt.com"],
-        },
-        grantedAt: new Date().toISOString(),
-        grantedByUser: true,
-      });
-      changed = true;
-    }
-
     const requiredCliPatterns = [
       "ffmpeg",
       "ffprobe",

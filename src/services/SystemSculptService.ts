@@ -1,4 +1,4 @@
-import { App, TFile, requestUrl } from "obsidian";
+import { TFile } from "obsidian";
 import {
   ChatMessage,
   SystemSculptModel,
@@ -13,28 +13,20 @@ import {
 // License checks removed for Agent Mode access
 import { MCPService } from "../views/chatview/MCPService";
 import SystemSculptPlugin from "../main";
-import { DebugLogger } from "../utils/debugLogger";
 import { getImageCompatibilityInfo, getToolCompatibilityInfo } from "../utils/modelUtils";
 import { mapAssistantToolCallsForApi, normalizeJsonSchema, normalizeOpenAITools } from "../utils/tooling";
 import { deterministicId } from "../utils/id";
 import { Notice } from "obsidian";
 import { PlatformContext } from "./PlatformContext";
-import { SystemSculptEnvironment } from "./api/SystemSculptEnvironment";
-import { SYSTEMSCULPT_API_ENDPOINTS } from "../constants/api";
-import { SYSTEMSCULPT_WEBSITE } from "../constants/externalServices";
 
 // Import the new service classes
 import { StreamingService } from "./StreamingService";
 import { StreamingErrorHandler } from "./StreamingErrorHandler";
 import type { StreamEvent, StreamPipelineDiagnostics } from "../streaming/types";
-import { LicenseService } from "./LicenseService";
 import { ModelManagementService } from "./ModelManagementService";
 import { ContextFileService } from "./ContextFileService";
-import { DocumentUploadService } from "./DocumentUploadService";
-import { AudioUploadService } from "./AudioUploadService";
 import { errorLogger } from "../utils/errorLogger";
-import { AgentSessionClient, type AgentSessionRequest } from "./agent-v2/AgentSessionClient";
-import { normalizePiTools } from "./agent-v2/PiToolAdapter";
+import type { AgentSessionRequest } from "./agent-v2/AgentSessionClient";
 import type { CustomProvider } from "../types/llm";
 import { postJsonStreaming } from "../utils/streaming";
 import { RuntimeIncompatibilityService } from "./RuntimeIncompatibilityService";
@@ -154,12 +146,8 @@ export class SystemSculptService {
 
   // Specialized service instances
   private streamingService: StreamingService;
-  private licenseService: LicenseService;
   private modelManagementService: ModelManagementService;
   private contextFileService: ContextFileService;
-  private documentUploadService: DocumentUploadService;
-  private audioUploadService: AudioUploadService;
-  private agentSessionClient: AgentSessionClient;
 
   public get extractionsDirectory(): string {
     return this.settings.extractionsDirectory ?? "";
@@ -649,25 +637,8 @@ export class SystemSculptService {
 
     // Initialize specialized services
     this.streamingService = new StreamingService();
-    this.licenseService = new LicenseService(plugin, this.baseUrl);
     this.modelManagementService = new ModelManagementService(plugin, this.baseUrl);
     this.contextFileService = new ContextFileService(plugin.app);
-    this.documentUploadService = new DocumentUploadService(
-      plugin.app,
-      this.baseUrl,
-      this.settings.licenseKey,
-      this.plugin.manifest?.version ?? "0.0.0"
-    );
-    this.audioUploadService = new AudioUploadService(plugin.app, this.baseUrl, this.settings.licenseKey);
-    this.agentSessionClient = new AgentSessionClient({
-      baseUrl: this.baseUrl,
-      licenseKey: this.settings.licenseKey,
-      request: (input) => this.requestAgentV2(input),
-      defaultHeaders: {
-        "x-systemsculpt-surface": "chat",
-      },
-      managedInference: true,
-    });
   }
 
   /**
@@ -699,13 +670,7 @@ export class SystemSculptService {
   }
 
   private getValidServerUrl(): string {
-    // Import development mode constants and helpers
-    const { DEVELOPMENT_MODE } = require('../constants/api');
-    if (DEVELOPMENT_MODE === 'DEVELOPMENT' && (!this.settings.serverUrl || this.settings.serverUrl.trim() === '')) {
-      return 'http://localhost:3001/api/v1';
-    }
-
-    return SystemSculptEnvironment.resolveBaseUrl(this.settings);
+    return "";
   }
 
   private countImageContextFiles(contextFiles: Set<string>): number {
@@ -745,19 +710,7 @@ export class SystemSculptService {
     this.settings = this.plugin.settings;
     this.baseUrl = this.getValidServerUrl();
     
-    // Update specialized services with new configuration
-    this.licenseService.updateBaseUrl(this.baseUrl);
     this.modelManagementService.updateBaseUrl(this.baseUrl);
-    this.documentUploadService.updateConfig(
-      this.baseUrl,
-      this.settings.licenseKey,
-      this.plugin.manifest?.version ?? "0.0.0"
-    );
-    this.audioUploadService.updateConfig(this.baseUrl, this.settings.licenseKey);
-    this.agentSessionClient.updateConfig({
-      baseUrl: this.baseUrl,
-      licenseKey: this.settings.licenseKey,
-    });
   }
 
   /**
@@ -777,58 +730,11 @@ export class SystemSculptService {
     return id;
   }
 
-  private getAgentV2BaseUrl(): string {
-    const trimmed = this.baseUrl.replace(/\/+$/, '');
-    return trimmed.replace(/\/api\/v1$/i, '');
-  }
-
   private async requestAgentV2(input: AgentSessionRequest): Promise<Response> {
-    const platform = PlatformContext.get();
-    const transport = platform.preferredTransport({ endpoint: input.url });
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: input.stream ? "text/event-stream" : "application/json",
-      "x-license-key": this.settings.licenseKey,
-      ...(input.headers || {}),
-    };
-    const body = typeof input.body === "undefined" ? undefined : JSON.stringify(input.body);
-
-    if (transport === "fetch" && typeof fetch === "function") {
-      try {
-        return await fetch(input.url, {
-          method: input.method,
-          headers,
-          body,
-          cache: "no-store",
-        } as RequestInit);
-      } catch {}
-    }
-
-    const result = await requestUrl({
-      url: input.url,
-      method: input.method,
-      headers,
-      body,
-      throw: false,
-    });
-
-    const status = result.status || 500;
-    const textBody = typeof result.text === "string"
-      ? result.text
-      : JSON.stringify(result.json || {});
-
-    if (input.stream && status < 400) {
-      return new Response(textBody, {
-        status,
-        headers: { "Content-Type": "text/event-stream" },
-      });
-    }
-
-    return new Response(textBody, {
-      status,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Hosted agent sessions are unavailable in this fork." }),
+      { status: 410, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   public requestAgentSession(input: AgentSessionRequest): Promise<Response> {
@@ -837,8 +743,7 @@ export class SystemSculptService {
 
   // DELEGATE TO LICENSE SERVICE
   async validateLicense(forceCheck = false): Promise<boolean> {
-    this.refreshSettings(); // Ensure settings are current before validation
-    return this.licenseService.validateLicense(forceCheck);
+    return false;
   }
 
   // DELEGATE TO MODEL MANAGEMENT SERVICE
@@ -855,155 +760,18 @@ export class SystemSculptService {
   public async uploadDocument(
     file: TFile
   ): Promise<{ documentId: string; status: string; cached?: boolean }> {
-    return this.documentUploadService.uploadDocument(file);
+    throw new SystemSculptError("Hosted document upload is unavailable in this fork.", ERROR_CODES.MODEL_UNAVAILABLE, 410);
   }
 
   // DELEGATE TO AUDIO UPLOAD SERVICE
   public async uploadAudio(
     file: TFile
   ): Promise<{ documentId: string; status: string; cached?: boolean }> {
-    return this.audioUploadService.uploadAudio(file);
+    throw new SystemSculptError("Hosted audio upload is unavailable in this fork.", ERROR_CODES.MODEL_UNAVAILABLE, 410);
   }
 
   public async getCreditsBalance(): Promise<CreditsBalanceSnapshot> {
-    this.refreshSettings();
-
-    const licenseKey = (this.settings.licenseKey || "").trim();
-    if (!licenseKey) {
-      throw new SystemSculptError(
-        "License key required to fetch credits balance.",
-        ERROR_CODES.INVALID_LICENSE,
-        401
-      );
-    }
-
-    const url = `${this.baseUrl}${SYSTEMSCULPT_API_ENDPOINTS.CREDITS.BALANCE}`;
-    const platform = PlatformContext.get();
-    const transport = platform.preferredTransport({ endpoint: url });
-
-    const headers: Record<string, string> = {
-      ...SystemSculptEnvironment.buildHeaders(licenseKey),
-      Accept: "application/json",
-    };
-
-    let response: Response;
-    if (transport === "fetch" && typeof fetch === "function") {
-      response = await fetch(url, {
-        method: "GET",
-        headers,
-        cache: "no-store",
-      } as RequestInit);
-    } else {
-      const result = await requestUrl({
-        url,
-        method: "GET",
-        headers,
-        throw: false,
-      });
-
-      const status = result.status || 500;
-      const textBody =
-        typeof result.text === "string"
-          ? result.text
-          : JSON.stringify(result.json || {});
-
-      response = new Response(textBody, {
-        status,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (!response.ok) {
-      await StreamingErrorHandler.handleStreamError(response, false, {
-        provider: "systemsculpt",
-        endpoint: url,
-        model: "credits",
-      });
-    }
-
-    const payload = (await response.json()) as any;
-    const asNumber = (value: unknown): number => {
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-      if (typeof value === "string") {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return 0;
-    };
-    const asString = (value: unknown): string => (typeof value === "string" ? value : "");
-    const resolveBillingCycle = (value: unknown): "monthly" | "annual" | "unknown" => {
-      const normalized = String(value || "").trim().toLowerCase();
-      if (normalized === "monthly" || normalized === "annual") {
-        return normalized;
-      }
-      return "unknown";
-    };
-    const resolveCheckoutUrl = (value: unknown): string | null => {
-      if (typeof value !== "string") return null;
-      const trimmed = value.trim();
-      if (!trimmed) return null;
-      if (/^https?:\/\//i.test(trimmed)) {
-        return trimmed;
-      }
-      if (!trimmed.startsWith("/")) {
-        return null;
-      }
-      try {
-        return new URL(trimmed, SYSTEMSCULPT_WEBSITE.BASE_URL).toString();
-      } catch {
-        return null;
-      }
-    };
-    const resolveAnnualUpgradeOffer = (value: unknown): CreditsBalanceSnapshot["annualUpgradeOffer"] => {
-      if (!value || typeof value !== "object") {
-        return null;
-      }
-
-      const payloadValue = value as Record<string, unknown>;
-      const amountSavedCents = Math.floor(asNumber(payloadValue.amount_saved_cents));
-      const percentSaved = Math.floor(asNumber(payloadValue.percent_saved));
-      const annualPriceCents = Math.floor(asNumber(payloadValue.annual_price_cents));
-      const monthlyEquivalentAnnualCents = Math.floor(asNumber(payloadValue.monthly_equivalent_annual_cents));
-      const checkoutUrl = resolveCheckoutUrl(payloadValue.checkout_path);
-
-      if (
-        amountSavedCents <= 0 ||
-        percentSaved <= 0 ||
-        annualPriceCents <= 0 ||
-        monthlyEquivalentAnnualCents <= annualPriceCents ||
-        !checkoutUrl
-      ) {
-        return null;
-      }
-
-      return {
-        amountSavedCents,
-        percentSaved,
-        annualPriceCents,
-        monthlyEquivalentAnnualCents,
-        checkoutUrl,
-      };
-    };
-
-    const billingCycle = resolveBillingCycle(payload?.billing_cycle);
-    const annualUpgradeOffer = resolveAnnualUpgradeOffer(payload?.annual_upgrade_offer);
-
-    return {
-      includedRemaining: asNumber(payload?.included_remaining),
-      addOnRemaining: asNumber(payload?.add_on_remaining),
-      totalRemaining: asNumber(payload?.total_remaining),
-      includedPerMonth: asNumber(payload?.included_per_month),
-      cycleEndsAt: asString(payload?.cycle_ends_at),
-      cycleStartedAt: asString(payload?.cycle_started_at),
-      cycleAnchorAt: asString(payload?.cycle_anchor_at),
-      turnInFlightUntil: asString(payload?.turn_in_flight_until) || null,
-      purchaseUrl:
-        typeof payload?.purchase_url === "string" && payload.purchase_url.trim().length > 0
-          ? payload.purchase_url.trim()
-          : null,
-      billingCycle,
-      annualUpgradeOffer,
-    };
+    throw new SystemSculptError("Hosted credit balances are unavailable in this fork.", ERROR_CODES.INVALID_LICENSE, 410);
   }
 
   public async getCreditsUsage(params?: {
@@ -1011,156 +779,7 @@ export class SystemSculptService {
     before?: string;
     endpoints?: string[];
   }): Promise<CreditsUsageHistoryPage> {
-    this.refreshSettings();
-
-    const licenseKey = (this.settings.licenseKey || "").trim();
-    if (!licenseKey) {
-      throw new SystemSculptError(
-        "License key required to fetch credits usage.",
-        ERROR_CODES.INVALID_LICENSE,
-        401
-      );
-    }
-
-    const requestUrlValue = new URL(
-      `${this.baseUrl}${SYSTEMSCULPT_API_ENDPOINTS.CREDITS.USAGE}`
-    );
-    if (typeof params?.limit === "number" && Number.isFinite(params.limit) && params.limit > 0) {
-      requestUrlValue.searchParams.set("limit", String(Math.floor(params.limit)));
-    }
-    if (typeof params?.before === "string" && params.before.trim().length > 0) {
-      requestUrlValue.searchParams.set("before", params.before.trim());
-    }
-    if (Array.isArray(params?.endpoints)) {
-      for (const endpoint of params.endpoints) {
-        if (typeof endpoint !== "string") continue;
-        const trimmed = endpoint.trim();
-        if (!trimmed) continue;
-        requestUrlValue.searchParams.append("endpoint", trimmed);
-      }
-    }
-
-    const platform = PlatformContext.get();
-    const transport = platform.preferredTransport({ endpoint: requestUrlValue.toString() });
-
-    const headers: Record<string, string> = {
-      ...SystemSculptEnvironment.buildHeaders(licenseKey),
-      Accept: "application/json",
-    };
-
-    let response: Response;
-    if (transport === "fetch" && typeof fetch === "function") {
-      response = await fetch(requestUrlValue.toString(), {
-        method: "GET",
-        headers,
-        cache: "no-store",
-      } as RequestInit);
-    } else {
-      const result = await requestUrl({
-        url: requestUrlValue.toString(),
-        method: "GET",
-        headers,
-        throw: false,
-      });
-
-      const status = result.status || 500;
-      const textBody =
-        typeof result.text === "string"
-          ? result.text
-          : JSON.stringify(result.json || {});
-
-      response = new Response(textBody, {
-        status,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (!response.ok) {
-      await StreamingErrorHandler.handleStreamError(response, false, {
-        provider: "systemsculpt",
-        endpoint: requestUrlValue.toString(),
-        model: "credits-usage",
-      });
-    }
-
-    const payload = (await response.json()) as any;
-    const asNumber = (value: unknown): number => {
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-      if (typeof value === "string") {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return 0;
-    };
-    const asString = (value: unknown): string => (typeof value === "string" ? value : "");
-    const asNullableString = (value: unknown): string | null => {
-      const str = asString(value).trim();
-      return str.length > 0 ? str : null;
-    };
-    const asUsageKind = (value: unknown): CreditsUsageSnapshot["usageKind"] => {
-      const raw = asString(value);
-      if (
-        raw === "audio_transcription" ||
-        raw === "embeddings" ||
-        raw === "document_processing" ||
-        raw === "youtube_transcript" ||
-        raw === "agent_turn" ||
-        raw === "request"
-      ) {
-        return raw;
-      }
-      return "request";
-    };
-
-    const rawItems = Array.isArray(payload?.items) ? payload.items : [];
-    const items: CreditsUsageSnapshot[] = rawItems.map((item: any) => ({
-      id: asString(item?.id),
-      createdAt: asString(item?.created_at),
-      transactionType: "agent_turn",
-      endpoint: asNullableString(item?.endpoint),
-      usageKind: asUsageKind(item?.usage_kind),
-      durationSeconds: asNumber(item?.duration_seconds),
-      totalTokens: asNumber(item?.total_tokens),
-      inputTokens: asNumber(item?.input_tokens),
-      outputTokens: asNumber(item?.output_tokens),
-      cacheReadTokens: asNumber(item?.cache_read_tokens),
-      cacheWriteTokens: asNumber(item?.cache_write_tokens),
-      pageCount: asNumber(item?.page_count),
-      creditsCharged: asNumber(item?.credits_charged),
-      includedDelta: asNumber(item?.included_delta),
-      addOnDelta: asNumber(item?.add_on_delta),
-      totalDelta: asNumber(item?.total_delta),
-      includedBefore: asNumber(item?.included_before),
-      includedAfter: asNumber(item?.included_after),
-      addOnBefore: asNumber(item?.add_on_before),
-      addOnAfter: asNumber(item?.add_on_after),
-      totalBefore: asNumber(item?.total_before),
-      totalAfter: asNumber(item?.total_after),
-      rawUsd: asNumber(item?.raw_usd),
-      fileSizeBytes:
-        item?.file_size_bytes === null || item?.file_size_bytes === undefined
-          ? null
-          : asNumber(item?.file_size_bytes),
-      fileFormat: asNullableString(item?.file_format),
-      billingFormulaVersion: asNullableString(item?.billing_formula_version),
-      billingCreditsPerUsd:
-        item?.billing_credits_per_usd === null || item?.billing_credits_per_usd === undefined
-          ? null
-          : asNumber(item?.billing_credits_per_usd),
-      billingMarkupMultiplier:
-        item?.billing_markup_multiplier === null || item?.billing_markup_multiplier === undefined
-          ? null
-          : asNumber(item?.billing_markup_multiplier),
-      billingCreditsExact:
-        item?.billing_credits_exact === null || item?.billing_credits_exact === undefined
-          ? null
-          : asNumber(item?.billing_credits_exact),
-    }));
-
-    return {
-      items,
-      nextBefore: asNullableString(payload?.next_before),
-    };
+    return { items: [], nextBefore: null };
   }
 
 	  async *streamMessage({
@@ -1196,10 +815,6 @@ export class SystemSculptService {
 	    debug?: StreamDebugCallbacks;
     sessionId?: string;
   }): AsyncGenerator<StreamEvent, void, unknown> {
-    // DEVELOPMENT MODE LOGGING: Log development mode status and server configuration
-    const { DEVELOPMENT_MODE } = await import('../constants/api');
-    const chatSessionId = sessionId || this.streamingService.generateRequestId();
-    
     this.refreshSettings();
     const platform = PlatformContext.get();
     
@@ -1525,210 +1140,11 @@ export class SystemSculptService {
         return;
       }
 
-      // Debug: log the final system prompt being sent (first system message)
-      try {
-        const debugMode = this.plugin.settings?.debugMode || false;
-        if (debugMode) {
-          const sysMsg = preparedMessages.find(m => m.role === 'system');
-          const content = typeof sysMsg?.content === 'string' ? sysMsg.content : '';
-          const preview = content.slice(0, 600);
-          errorLogger.debug('Prepared system prompt for request', {
-            source: 'SystemSculptService',
-            method: 'streamMessage',
-            metadata: {
-              hasSystemMessage: !!sysMsg,
-              systemLength: content.length,
-              agentMode: effectiveAgentMode,
-              systemPromptType: systemPromptType || 'undefined',
-              systemPromptPath: systemPromptPath || undefined,
-              preview,
-              systemPrompt: content
-            }
-          });
-        }
-      } catch {}
-
-      const apiMessages = this.toSystemSculptApiMessages(preparedMessages);
-      const endpoint = `${this.getAgentV2BaseUrl()}${SYSTEMSCULPT_API_ENDPOINTS.AGENT.SESSIONS}`;
-      const piTools = normalizePiTools(requestTools);
-      const requestBody = {
-        messages: apiMessages,
-        tools: piTools,
-        stream: true,
-      };
-
-      try {
-        debug?.onRequest?.({
-          provider: "systemsculpt-v2",
-          endpoint,
-          headers: {
-            "Content-Type": "application/json",
-            "x-license-key": this.settings.licenseKey,
-          },
-          body: requestBody,
-          transport: platform.preferredTransport({ endpoint }),
-          canStream: true,
-          isCustomProvider: false,
-        });
-      } catch {}
-
-      const logger = DebugLogger.getInstance();
-      const responseLogEndpoint = `${this.getAgentV2BaseUrl()}${SYSTEMSCULPT_API_ENDPOINTS.AGENT.BASE}`;
-      let emittedAssistantOutput = false;
-      let attempt = 0;
-      const MAX_PI_STREAM_ATTEMPTS = 3;
-
-      while (attempt < MAX_PI_STREAM_ATTEMPTS) {
-        if (signal?.aborted) {
-          return;
-        }
-        try {
-          const response = await this.agentSessionClient.startOrContinueTurn({
-            chatId: chatSessionId,
-            messages: apiMessages,
-            tools: piTools,
-            pluginVersion: (this.plugin as any)?.manifest?.version,
-          });
-
-          // Log API response status
-          logger?.logAPIResponse(responseLogEndpoint, response.status);
-
-          try {
-            const responseHeaders: Record<string, string> = {};
-            response.headers.forEach((value, key) => {
-              responseHeaders[key] = value;
-            });
-            debug?.onResponse?.({
-              provider: "systemsculpt",
-              endpoint: responseLogEndpoint,
-              status: response.status,
-              headers: responseHeaders,
-              isCustomProvider: false,
-            });
-          } catch {}
-
-          if (!response.ok) {
-            logger?.logAPIResponse(responseLogEndpoint, response.status, null, { message: `HTTP ${response.status}` });
-            await StreamingErrorHandler.handleStreamError(response, false, {
-              provider: "systemsculpt-v2",
-              endpoint: responseLogEndpoint,
-              model: serverModelId || actualModelId
-            });
-          }
-          if (!response.body) {
-            throw new SystemSculptError(
-              "Missing response body from streaming API",
-              ERROR_CODES.STREAM_ERROR,
-              response.status
-            );
-          }
-          // Log response meta for diagnostics
-          try {
-            errorLogger.debug('Streaming response received', {
-              source: 'SystemSculptService',
-              method: 'streamMessage',
-              metadata: {
-                status: response.status,
-                contentType: response.headers.get('content-type') || 'unknown',
-                hasBody: !!response.body,
-                attempt: attempt + 1,
-              }
-            });
-          } catch {}
-
-          let streamDiagnostics: StreamPipelineDiagnostics | null = null;
-          const streamIterator = this.streamingService.streamResponse(response, {
-            model: serverModelId || actualModelId,
-            isCustomProvider: false,
-            signal,
-            onRawEvent: (data) => {
-              try {
-                debug?.onRawEvent?.(data);
-              } catch {}
-            },
-            onDiagnostics: (diagnostics) => {
-              streamDiagnostics = diagnostics;
-            },
-          });
-
-          let streamCompleted = false;
-          let streamAborted = false;
-          try {
-            for await (const event of streamIterator) {
-              if (event.type === "content" || event.type === "reasoning" || event.type === "tool-call") {
-                emittedAssistantOutput = true;
-              }
-              try {
-                debug?.onStreamEvent?.({ event });
-              } catch {}
-              yield event;
-            }
-            streamCompleted = true;
-          } finally {
-            streamAborted = !!signal?.aborted;
-            try {
-              debug?.onStreamEnd?.({
-                completed: streamCompleted,
-                aborted: streamAborted,
-                diagnostics: streamDiagnostics ?? undefined,
-              });
-            } catch {}
-          }
-
-          return;
-        } catch (error) {
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          if (signal?.aborted) {
-            return;
-          }
-
-          const retryHints = this.shouldRetryRateLimitedStreamTurn(error);
-          const canRetry =
-            !emittedAssistantOutput &&
-            retryHints !== null &&
-            attempt < MAX_PI_STREAM_ATTEMPTS - 1;
-          if (!canRetry) {
-            throw error;
-          }
-
-          attempt += 1;
-          const retryDelayMs = this.getRateLimitedRetryDelayMs(retryHints?.retryAfterSeconds, attempt);
-          try {
-            errorLogger.debug("Retrying PI turn after transient upstream rate limit", {
-              source: "SystemSculptService",
-              method: "streamMessage",
-              metadata: {
-                model: serverModelId || actualModelId,
-                attempt,
-                maxAttempts: MAX_PI_STREAM_ATTEMPTS,
-                delayMs: retryDelayMs,
-              },
-            });
-          } catch {}
-          await this.waitForRetryWindow(retryDelayMs, signal);
-          if (signal?.aborted) {
-            return;
-          }
-          // Yield one event-loop tick so aborts queued immediately after backoff
-          // are observed before issuing another upstream turn request.
-          await this.waitForRetryWindow(0, signal);
-          if (signal?.aborted) {
-            return;
-          }
-          try {
-            yield {
-              type: "meta",
-              key: "inline-footnote",
-              value: `Provider is temporarily rate-limited. Retrying automatically (${attempt + 1}/${MAX_PI_STREAM_ATTEMPTS})…`,
-            } as any;
-          } catch {}
-          continue;
-        }
-      }
-
-      return;
+      throw new SystemSculptError(
+        "The hosted SystemSculpt chat provider has been removed. Choose a custom or local provider model.",
+        ERROR_CODES.MODEL_UNAVAILABLE,
+        410
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         // Handle abort gracefully

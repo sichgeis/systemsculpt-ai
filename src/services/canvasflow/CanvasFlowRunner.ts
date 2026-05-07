@@ -1,6 +1,5 @@
 import { App, Notice, TFile, normalizePath } from "obsidian";
 import type SystemSculptPlugin from "../../main";
-import { API_BASE_URL } from "../../constants/api";
 import { resolveSystemSculptApiBaseUrl } from "../../utils/urlHelpers";
 import {
   addEdge,
@@ -22,10 +21,7 @@ import {
   type ImageGenerationServerCatalogModel,
 } from "./ImageGenerationModelCatalog";
 import {
-  type SystemSculptGenerationJobResponse,
-  type SystemSculptImageGenerationOutput,
-} from "./SystemSculptImageGenerationService";
-import {
+  type CanvasFlowGenerationJobResponse,
   createDefaultCanvasFlowImageGenerationClient,
   type CanvasFlowImageGenerationClient,
   type CanvasFlowImageGenerationClientFactory,
@@ -37,6 +33,8 @@ import {
 } from "./CanvasFlowStoragePaths";
 
 type RunStatusUpdater = (status: string) => void;
+type SystemSculptGenerationJobResponse = CanvasFlowGenerationJobResponse;
+type SystemSculptImageGenerationOutput = any;
 const MAX_CANVASFLOW_INPUT_IMAGES = 8;
 const CANVASFLOW_INPUT_UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
 const CANVASFLOW_INPUT_MAX_DIMENSION_PX = 2048;
@@ -656,7 +654,7 @@ export class CanvasFlowRunner {
       throw new Error("License key is not configured. Validate your license in Settings -> Setup.");
     }
 
-    const baseUrl = resolveSystemSculptApiBaseUrl(String(this.plugin.settings.serverUrl || API_BASE_URL));
+    const baseUrl = resolveSystemSculptApiBaseUrl(String(this.plugin.settings.serverUrl || ""));
     const context = await this.resolvePromptRunContext({
       canvasFile: options.canvasFile,
       promptNodeId: options.promptNodeId,
@@ -752,7 +750,7 @@ export class CanvasFlowRunner {
         });
         batchRunCount += 1;
 
-        const outputs = generationRun.finalJob.outputs.filter((output) => isHttpUrl(String(output.url || "")));
+        const outputs = ((generationRun.finalJob as any).outputs || []).filter((output: any) => isHttpUrl(String(output.url || "")));
         if (outputs.length === 0) {
           if (savedOutputs.length === 0) {
             throw new Error("Image generation completed, but no output URLs were returned.");
@@ -1188,7 +1186,7 @@ export class CanvasFlowRunner {
         }))
       );
 
-      const uploadByIndex = new Map(preparedUploads.input_uploads.map((item) => [item.index, item]));
+      const uploadByIndex = new Map<number, any>(((preparedUploads as any).input_uploads || []).map((item: any) => [item.index, item]));
       uploadedInputRefs = [];
 
       for (let idx = 0; idx < options.inputImages.length; idx += 1) {
@@ -1437,14 +1435,14 @@ export class CanvasFlowRunner {
       },
     });
 
-    const outputs = refreshed.outputs.filter((item) => isHttpUrl(String(item.url || "")));
+    const outputs = (((refreshed as any).outputs || []) as any[]).filter((item: any) => isHttpUrl(String(item.url || "")));
     if (!outputs.length) {
       return null;
     }
 
     const targetIndex = Number(options.originalOutput.index);
     if (Number.isFinite(targetIndex)) {
-      const byIndex = outputs.find((item) => item.index === targetIndex);
+      const byIndex = outputs.find((item: any) => item.index === targetIndex);
       if (byIndex) return byIndex;
     }
 

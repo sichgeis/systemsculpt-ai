@@ -52,15 +52,15 @@ describe("StudioPermissionManager", () => {
       id: "g3",
       capability: "network",
       scope: {
-        allowedDomains: ["api.systemsculpt.com"],
+        allowedDomains: ["example.test"],
       },
       grantedAt: new Date().toISOString(),
       grantedByUser: true,
     });
 
     const manager = new StudioPermissionManager(policy);
-    expect(() => manager.assertNetworkUrl("https://api.systemsculpt.com/api/v1/agent/sessions")).not.toThrow();
-    expect(() => manager.assertNetworkUrl("http://api.systemsculpt.com")).toThrow("HTTPS");
+    expect(() => manager.assertNetworkUrl("https://example.test/api/v1/agent/sessions")).not.toThrow();
+    expect(() => manager.assertNetworkUrl("http://example.test")).toThrow("HTTPS");
     expect(() => manager.assertNetworkUrl("https://example.com")).toThrow("Network permission denied");
   });
 });

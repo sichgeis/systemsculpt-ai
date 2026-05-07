@@ -42,7 +42,6 @@ import {
   queueCanvasFlowLastUsedPatch,
   resolveCanvasFlowPromptDefaults,
 } from "./CanvasFlowPromptDefaults";
-import { SystemSculptImageGenerationService } from "./SystemSculptImageGenerationService";
 import { tryCopyImageFileToClipboard } from "../../utils/clipboard";
 import { findCanvasSelectionMenu } from "./CanvasFlowSelectionMenuHelpers";
 import { CanvasFlowCanvasAdapter } from "./CanvasFlowCanvasAdapter";
@@ -2018,13 +2017,7 @@ export class CanvasFlowEnhancer {
     this.imageModelCatalogRefreshInFlight = (async () => {
       try {
         const current = this.getCachedImageGenerationModels();
-        const service = new SystemSculptImageGenerationService({
-          baseUrl: this.plugin.settings.serverUrl,
-          licenseKey,
-        });
-
-        const systemCatalog = await service.listModels();
-        const supportedModels = Array.isArray(systemCatalog.models) ? systemCatalog.models : [];
+        const supportedModels: ImageGenerationServerCatalogModel[] = [];
         if (supportedModels.length === 0) {
           return false;
         }

@@ -1,6 +1,15 @@
 import { App, TFile } from "obsidian";
 import type SystemSculptPlugin from "../../main";
-import type { WebFetchResponse, WebSearchResult } from "./WebResearchApiService";
+type WebSearchResult = { title: string; url: string; snippet?: string };
+type WebFetchResponse = {
+  url: string;
+  finalUrl: string;
+  title?: string | null;
+  markdown?: string;
+  fetchedAt?: string;
+  contentType?: string | null;
+  truncated?: boolean;
+};
 
 type SearchRunParams = {
   chatId: string;
@@ -180,7 +189,7 @@ export class WebResearchCorpusService {
       const frontmatter = buildFrontmatter({
         url: entry.fetch.url,
         final_url: entry.fetch.finalUrl,
-        title: entry.fetch.title,
+        title: entry.fetch.title ?? null,
         fetched_at: entry.fetch.fetchedAt,
         content_type: entry.fetch.contentType,
         truncated: entry.fetch.truncated,
@@ -191,7 +200,7 @@ export class WebResearchCorpusService {
 
       fetchedFiles.push({
         url: entry.fetch.finalUrl || entry.fetch.url,
-        title: entry.fetch.title,
+        title: entry.fetch.title ?? null,
         filePath,
       });
     }

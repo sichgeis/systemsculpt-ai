@@ -2,11 +2,9 @@
  * URL helper utilities for consistent API endpoint handling
  */
 
-import { API_BASE_URL } from "../constants/api";
-
 /**
  * Ensures a server URL has the proper /api/v1 suffix
- * @param serverUrl The base server URL (e.g., "https://api.systemsculpt.com")
+ * @param serverUrl The base server URL
  * @returns The normalized URL with /api/v1 suffix
  */
 export function normalizeApiUrl(serverUrl: string): string {
@@ -47,35 +45,19 @@ export function normalizeApiUrl(serverUrl: string): string {
   }
 }
 
-const SYSTEMSCULPT_MARKETING_HOSTS = new Set([
-  'systemsculpt.com',
-  'www.systemsculpt.com'
-]);
-
 /**
- * Resolve the canonical SystemSculpt API base URL, correcting common misconfigurations.
- * - Blank / undefined -> production API base
- * - Marketing domains -> api subdomain
- * - Custom hosts -> normalized with /api/v1 suffix preserved
+ * Resolve a user-configured API base URL for legacy callers.
  */
 export function resolveSystemSculptApiBaseUrl(serverUrl?: string): string {
   const candidate = (serverUrl || '').trim();
   if (!candidate) {
-    return API_BASE_URL;
+    return "";
   }
 
-  let normalized = API_BASE_URL;
   try {
-    normalized = normalizeApiUrl(candidate);
-    const url = new URL(normalized);
-    if (SYSTEMSCULPT_MARKETING_HOSTS.has(url.hostname)) {
-      url.hostname = 'api.systemsculpt.com';
-      url.port = '';
-      return url.toString();
-    }
-    return url.toString();
+    return new URL(normalizeApiUrl(candidate)).toString();
   } catch {
-    return API_BASE_URL;
+    return "";
   }
 }
 

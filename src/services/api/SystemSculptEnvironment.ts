@@ -1,6 +1,4 @@
-import { API_BASE_URL, DEVELOPMENT_MODE, SYSTEMSCULPT_API_HEADERS } from '../../constants/api';
 import { SystemSculptSettings } from '../../types';
-import { resolveSystemSculptApiBaseUrl } from '../../utils/urlHelpers';
 
 export interface ApiEnvironmentConfig {
   baseUrl: string;
@@ -15,25 +13,15 @@ export class SystemSculptEnvironment {
   /**
    * Resolve the canonical base URL for the SystemSculpt API.
    * Applies marketing-domain correction, /api/v1 normalization, and
-   * falls back to the compiled API_BASE_URL when the input is blank.
+   * returns an empty string when no user-provided URL exists.
    */
   static resolveBaseUrl(
     settings: Pick<SystemSculptSettings, 'serverUrl'>,
     override?: string
   ): string {
-    const candidate = typeof override === 'string' && override.trim().length > 0
+    return typeof override === 'string' && override.trim().length > 0
       ? override.trim()
       : (settings.serverUrl?.trim() || '');
-
-    // In production builds, never honor localhost/loopback server settings.
-    if (candidate && DEVELOPMENT_MODE === 'PRODUCTION') {
-      const lower = candidate.toLowerCase();
-      if (lower.includes('localhost') || lower.includes('127.0.0.1')) {
-        return API_BASE_URL;
-      }
-    }
-
-    return resolveSystemSculptApiBaseUrl(candidate || API_BASE_URL);
   }
 
   /**
@@ -55,8 +43,8 @@ export class SystemSculptEnvironment {
    */
   static buildHeaders(licenseKey?: string): Record<string, string> {
     if (!licenseKey) {
-      return { ...SYSTEMSCULPT_API_HEADERS.DEFAULT };
+      return { "Content-Type": "application/json", Accept: "application/json" };
     }
-    return SYSTEMSCULPT_API_HEADERS.WITH_LICENSE(licenseKey);
+    return { "Content-Type": "application/json", Accept: "application/json" };
   }
 }

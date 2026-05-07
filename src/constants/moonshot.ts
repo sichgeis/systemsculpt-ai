@@ -2,7 +2,7 @@
  * Moonshot (Kimi) API constants and helpers
  */
 
-export const MOONSHOT_API_BASE_URL = "https://api.moonshot.ai/v1";
+export const MOONSHOT_BASE_ENDPOINT = "https://api.moonshot.ai/v1";
 
 /**
  * Detect whether a custom provider endpoint is targeting Moonshot/Kimi APIs.
@@ -26,4 +26,3 @@ export function isMoonshotEndpoint(endpoint: string): boolean {
     return false;
   }
 }
-

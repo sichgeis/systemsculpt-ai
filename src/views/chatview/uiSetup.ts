@@ -758,7 +758,7 @@ export const uiSetup = {
       }) as HTMLElement;
 
       chatView.registerDomEvent(chatView.creditsIndicator, "click", () => {
-        void chatView.openCreditsBalanceModal();
+        new Notice("Hosted credits are unavailable in this fork.", 5000);
       });
     } else {
       chatView.creditsIndicator.empty();

@@ -1,5 +1,4 @@
 import { SystemSculptModel, CustomProvider } from "../../types/llm";
-import { SystemSculptProviderService } from "./SystemSculptProviderService";
 import { CustomProviderModelService } from "./CustomProviderModelService";
 import { FavoritesService } from "../FavoritesService";
 import { RuntimeIncompatibilityService } from "../RuntimeIncompatibilityService";
@@ -20,7 +19,6 @@ import SystemSculptPlugin from "../../main";
  */
 export class UnifiedModelService {
   private static instance: UnifiedModelService | null = null;
-  private systemSculptService: SystemSculptProviderService;
   private customProviderService: CustomProviderModelService;
   private favoritesService: FavoritesService;
   private isInitialLoadDone = false;
@@ -28,7 +26,6 @@ export class UnifiedModelService {
   private deferredCustomPrefetchStarted = false;
 
   private constructor(private plugin: SystemSculptPlugin) {
-    this.systemSculptService = SystemSculptProviderService.getInstance(plugin);
     this.customProviderService = CustomProviderModelService.getInstance(plugin);
     this.favoritesService = FavoritesService.getInstance(plugin);
   }
@@ -45,8 +42,6 @@ export class UnifiedModelService {
    */
   public static clearInstance(): void {
     if (this.instance) {
-      // Clear provider services
-      SystemSculptProviderService.clearInstance();
       CustomProviderModelService.clearInstance();
       this.instance = null;
     }
@@ -113,10 +108,6 @@ export class UnifiedModelService {
    */
   public async getModels(forceRefresh: boolean = false): Promise<SystemSculptModel[]> {
     try {
-      const systemModelsPromise = forceRefresh
-        ? (this.systemSculptService.clearCache(), this.systemSculptService.getModels())
-        : this.systemSculptService.getModels();
-
       const enabledCustomProviders = this.getEnabledCustomProviders();
       const deferCustomProviders = forceRefresh ? false : this.shouldDeferCustomProviders(false);
       let customModelList: SystemSculptModel[] = [];
@@ -134,12 +125,9 @@ export class UnifiedModelService {
         customModelsPromise = this.customProviderService.getModels();
       }
 
-      const [systemModels, customModels] = await Promise.allSettled([
-        systemModelsPromise,
-        customModelsPromise ?? Promise.resolve(customModelList)
-      ]);
-
-      const systemModelList = systemModels.status === 'fulfilled' ? systemModels.value : [];
+      const customModels = await Promise.resolve(customModelsPromise ?? Promise.resolve(customModelList))
+        .then((value) => ({ status: "fulfilled" as const, value }))
+        .catch((reason) => ({ status: "rejected" as const, reason }));
       if (!deferCustomProviders) {
         customModelList = customModels.status === 'fulfilled' ? customModels.value : [];
         this.customProvidersReady = true;
@@ -151,7 +139,7 @@ export class UnifiedModelService {
       const filteredCustomList = customModelList;
 
       // Combine models from all providers
-      const allModels = [...systemModelList, ...filteredCustomList];
+      const allModels = [...filteredCustomList];
 
       // Ensure all models have canonical IDs
       const canonicalModels = allModels.map(model => {
@@ -187,11 +175,6 @@ export class UnifiedModelService {
     const incompatService = RuntimeIncompatibilityService.getInstance(this.plugin);
 
     // First check cached models from both services
-    const systemModel = this.systemSculptService.getCachedModelById(modelId);
-    if (systemModel) {
-      return incompatService.applyRuntimeFlags(systemModel);
-    }
-
     const customModel = this.customProviderService.getCachedModelById(modelId);
     if (customModel) {
       return incompatService.applyRuntimeFlags(customModel);
@@ -221,11 +204,6 @@ export class UnifiedModelService {
       // Do not prioritize a specific agent model by license; choose best available otherwise
 
       // Try to find alternative from the same provider first
-      const systemAlternative = this.systemSculptService.findBestAlternativeModel(unavailableModelId);
-      if (systemAlternative) {
-        return systemAlternative;
-      }
-
       const customAlternative = this.customProviderService.findBestAlternativeModel(unavailableModelId);
       if (customAlternative) {
         return customAlternative;
@@ -262,29 +240,15 @@ export class UnifiedModelService {
       const found = modelList?.find((m) => m.id === savedId);
 
       if (!found) {
-        // Try targeted migration: if savedId is a SystemSculpt Groq id with a bare upstream segment,
-        // align to upstream vendor-qualified id by suffix matching against current list.
-        const { parseCanonicalId } = await import('../../utils/modelUtils');
         const parsed = parseCanonicalId(savedId);
-        if (parsed && parsed.providerId === 'systemsculpt' && parsed.modelId.startsWith('groq/')) {
-          const tail = parsed.modelId.split('/').pop() || parsed.modelId;
-          // Prefer exact groq/ entries whose upstream ends with the same tail
-          const candidates = modelList.filter(m => {
-            if (!m.id.includes('@@')) return false;
-            const p = parseCanonicalId(m.id);
-            return !!p && p.providerId === 'systemsculpt' && p.modelId.startsWith('groq/') && p.modelId.toLowerCase().endsWith('/' + tail.toLowerCase());
-          });
-          if (candidates.length === 1) {
-            const fix = candidates[0];
-            result.wasReplaced = true;
-            result.oldModelId = savedId;
-            result.newModel = fix;
-            await this.plugin.getSettingsManager().updateSettings({ selectedModelId: fix.id });
-            return result;
-          }
+        if (parsed && parsed.providerId === 'systemsculpt') {
+          result.wasReplaced = true;
+          result.oldModelId = savedId;
+          await this.plugin.getSettingsManager().updateSettings({ selectedModelId: "" });
+          return result;
         }
 
-        if (modelList && modelList.length > 0) {
+        if (modelList && modelList.length > 0 && savedId) {
           const fallbackModel = this.findBestAlternativeModel(savedId, modelList);
           if (fallbackModel) {
             result.wasReplaced = true;
@@ -336,12 +300,11 @@ export class UnifiedModelService {
   }
 
   private getCachedModelSnapshot(): SystemSculptModel[] | undefined {
-    const systemModels = this.systemSculptService.peekCachedModels() ?? [];
     const customModels = this.customProviderService.peekCachedModels() ?? [];
-    if (systemModels.length === 0 && customModels.length === 0) {
+    if (customModels.length === 0) {
       return undefined;
     }
-    return [...systemModels, ...customModels];
+    return [...customModels];
   }
 
   /**
@@ -402,16 +365,13 @@ export class UnifiedModelService {
    * Test connections to all providers independently
    */
   public async testAllConnections(): Promise<{
-    systemSculpt: boolean;
     customProviders: boolean;
   }> {
-    const [systemResult, customResult] = await Promise.allSettled([
-      this.systemSculptService.testConnection(),
-      this.customProviderService.testConnection()
-    ]);
+    const customResult = await Promise.resolve(this.customProviderService.testConnection())
+      .then((value) => ({ status: "fulfilled" as const, value }))
+      .catch((reason) => ({ status: "rejected" as const, reason }));
 
     return {
-      systemSculpt: systemResult.status === 'fulfilled' ? systemResult.value : false,
       customProviders: customResult.status === 'fulfilled' ? customResult.value : false
     };
   }
@@ -429,7 +389,6 @@ export class UnifiedModelService {
    * Clear all caches
    */
   public clearAllCaches(): void {
-    this.systemSculptService.clearCache();
     this.customProviderService.clearCache();
   }
 }

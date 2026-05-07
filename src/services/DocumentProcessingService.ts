@@ -1,7 +1,6 @@
 import { App, TFile, Notice } from "obsidian";
 import type SystemSculptPlugin from "../main";
 import { SystemSculptService } from "./SystemSculptService";
-import { SYSTEMSCULPT_API_ENDPOINTS } from "../constants/api";
 import { sleep } from "../utils/helpers";
 import type { HttpResponseShim } from "../utils/httpClient";
 import { PlatformContext } from "./PlatformContext";
@@ -559,7 +558,7 @@ export class DocumentProcessingService {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const baseUrl = this.sculptService.baseUrl;
-        const endpoint = SYSTEMSCULPT_API_ENDPOINTS.DOCUMENTS.GET(documentId);
+        const endpoint = "";
         const url = `${baseUrl}${endpoint}`;
 
         const { httpRequest } = await import("../utils/httpClient");
@@ -831,7 +830,7 @@ export class DocumentProcessingService {
     try {
       // Construct the URL with proper error handling
       const baseUrl = this.sculptService.baseUrl;
-      const endpoint = SYSTEMSCULPT_API_ENDPOINTS.DOCUMENTS.DOWNLOAD(documentId);
+      const endpoint = "";
       const url = `${baseUrl}${endpoint}`;
 
       const { httpRequest } = await import('../utils/httpClient');

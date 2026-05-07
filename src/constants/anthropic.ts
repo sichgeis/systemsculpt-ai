@@ -1,6 +1,6 @@
 // Anthropic API constants and models
 
-export const ANTHROPIC_API_BASE_URL = "https://api.anthropic.com";
+export const ANTHROPIC_BASE_ENDPOINT = "https://api.anthropic.com";
 
 export const ANTHROPIC_API_VERSION = "2023-06-01"; // Required API version header
 
@@ -85,9 +85,9 @@ export function correctAnthropicEndpoint(endpoint: string): {
   // If the endpoint contains "api.anthropic.com", extract and correct it
   if (lower.includes("api.anthropic.com")) {
     // Check if it's already correct
-    if (original === ANTHROPIC_API_BASE_URL || 
-        original === `${ANTHROPIC_API_BASE_URL}/v1` ||
-        original === `${ANTHROPIC_API_BASE_URL}/`) {
+    if (original === ANTHROPIC_BASE_ENDPOINT || 
+        original === `${ANTHROPIC_BASE_ENDPOINT}/v1` ||
+        original === `${ANTHROPIC_BASE_ENDPOINT}/`) {
       return {
         correctedEndpoint: original,
         wasCorrected: false,
@@ -102,7 +102,7 @@ export function correctAnthropicEndpoint(endpoint: string): {
     // - "some-prefix-api.anthropic.com-suffix"
     
     return {
-      correctedEndpoint: ANTHROPIC_API_BASE_URL,
+      correctedEndpoint: ANTHROPIC_BASE_ENDPOINT,
       wasCorrected: true,
       originalEndpoint: original,
     };

@@ -84,7 +84,7 @@ describe("StudioGraphCompiler", () => {
         version: "1.0.0",
         title: "HTTP",
         position: { x: 0, y: 0 },
-        config: { method: "GET", url: "https://api.systemsculpt.com" },
+        config: { method: "GET", url: "imported://example.test" },
       },
       {
         id: "text",
@@ -167,7 +167,7 @@ describe("StudioGraphCompiler", () => {
         version: "1.0.0",
         title: "HTTP",
         position: { x: 280, y: 0 },
-        config: { method: "POST", url: "https://api.systemsculpt.com/import" },
+        config: { method: "POST", url: "imported://example.test/import" },
       }
     );
     project.graph.edges.push({

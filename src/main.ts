@@ -20,9 +20,9 @@ ErrorCollectorService.initializeEarlyLogsCapture();
  */
 import { Plugin, Notice, MarkdownView, setIcon, WorkspaceLeaf, debounce, TFile, FileSystemAdapter } from "obsidian";
 import { initializeNotificationQueue } from "./core/ui/notifications";
-import { SystemSculptSettings, DEFAULT_SETTINGS, LogLevel, LICENSE_URL } from "./types";
+import { SystemSculptSettings, DEFAULT_SETTINGS, LogLevel } from "./types";
 import { SystemSculptModel } from "./types/llm";
-import { SystemSculptService, type CreditsBalanceSnapshot } from "./services/SystemSculptService";
+import { SystemSculptService } from "./services/SystemSculptService";
 import { SystemSculptSettingTab } from "./settings/SystemSculptSettingTab";
 import { RecorderService } from "./services/RecorderService";
 import { VideoRecorderService } from "./services/VideoRecorderService";
@@ -38,7 +38,6 @@ import { errorLogger } from "./utils/errorLogger";
 import { UnifiedModelService } from "./services/providers/UnifiedModelService";
 import { TemplateManager } from "./templates/TemplateManager";
 import { DirectoryManager } from "./core/DirectoryManager";
-import { VersionCheckerService } from "./services/VersionCheckerService";
 import { FavoritesService } from "./services/FavoritesService";
 import { RuntimeIncompatibilityService } from "./services/RuntimeIncompatibilityService";
 import { PreviewService } from './services/PreviewService';
@@ -95,7 +94,6 @@ export default class SystemSculptPlugin extends Plugin {
   private failures: string[] = [];
   emitter: EventEmitter;
   directoryManager: DirectoryManager;
-  public versionCheckerService: VersionCheckerService;
   private errorCollectorService: ErrorCollectorService;
   private favoritesService: FavoritesService;
   public resumeChatService: ResumeChatService;
@@ -725,15 +723,6 @@ export default class SystemSculptPlugin extends Plugin {
     });
 
     coordinator.registerTask("bootstrap", {
-      id: "services.versionChecker",
-      label: "version checker",
-      run: () => {
-        const version = this.manifest.version;
-        this.versionCheckerService = VersionCheckerService.getInstance(version, this.app, this);
-      },
-    });
-
-    coordinator.registerTask("bootstrap", {
       id: "logging.ready",
       label: "plugin logger",
       optional: true,
@@ -821,55 +810,7 @@ export default class SystemSculptPlugin extends Plugin {
         timeoutMs: 120_000,
       },
       run: async () => {
-        if (!this.versionCheckerService) {
-          return;
-        }
-
-        const tracer = this.getInitializationTracer();
-        const scheduleDelayMs = 10000;
-        const schedulePhase = tracer.startPhase("updates.check.schedule", {
-          slowThresholdMs: 0,
-          timeoutMs: 0,
-          successLevel: "debug",
-          metadata: {
-            intent: "version-check",
-          },
-        });
-        schedulePhase.complete({
-          scheduledDelayMs: scheduleDelayMs,
-        });
-
-        await new Promise<void>((resolve) => {
-          const timer = typeof window !== "undefined" && typeof window.setTimeout === "function" ? window.setTimeout : setTimeout;
-          timer(() => {
-            const executePhase = tracer.startPhase("updates.check.execute", {
-              slowThresholdMs: 6000,
-              timeoutMs: 30000,
-              successLevel: "debug",
-            });
-
-            const service = this.versionCheckerService;
-
-            if (!service) {
-              executePhase.complete({
-                skipped: true,
-                reason: "service-unavailable",
-              });
-              resolve();
-              return;
-            }
-
-            this.runAfterIdleAsync(() => service.checkForUpdatesOnStartup(0), 750)
-              .then(() => {
-                executePhase.complete();
-                resolve();
-              })
-              .catch((error) => {
-                executePhase.fail(error);
-                resolve();
-              });
-          }, scheduleDelayMs);
-        });
+        return;
       },
     });
 
@@ -1821,10 +1762,6 @@ export default class SystemSculptPlugin extends Plugin {
     try {
       // Embeddings cleanup
       // Clean up version checker service
-      if (this.versionCheckerService) {
-        VersionCheckerService.clearInstance();
-      }
-
       // Clean up error collector service
       if (this.errorCollectorService) {
         this.errorCollectorService.unload();
@@ -2093,48 +2030,6 @@ export default class SystemSculptPlugin extends Plugin {
     }
   }
 
-  public async openCreditsBalanceModal(options?: {
-    initialBalance?: CreditsBalanceSnapshot | null;
-    onBalanceUpdated?: (balance: CreditsBalanceSnapshot | null) => void | Promise<void>;
-    settingsTab?: string;
-  }): Promise<void> {
-    const initialBalance = options?.initialBalance ?? null;
-    let lastKnownBalance = initialBalance;
-    const settingsTab = options?.settingsTab ?? "overview";
-
-    try {
-      const { CreditsBalanceModal } = await import("./modals/CreditsBalanceModal");
-      const modal = new CreditsBalanceModal(this.app, {
-        initialBalance,
-        fallbackPurchaseUrl: LICENSE_URL,
-        loadBalance: async () => {
-          try {
-            const balance = await this.aiService.getCreditsBalance();
-            lastKnownBalance = balance;
-            if (options?.onBalanceUpdated) {
-              await options.onBalanceUpdated(balance);
-            }
-            return balance;
-          } catch {
-            // Keep the last known snapshot on transient failures so the credits
-            // indicator doesn't regress to an unknown state.
-            return lastKnownBalance;
-          }
-        },
-        loadUsage: (params) =>
-          this.aiService.getCreditsUsage({
-            limit: params?.limit,
-            before: params?.before,
-          }),
-        onOpenSetup: () => this.openSettingsTab(settingsTab),
-      });
-      modal.open();
-    } catch {
-      // Fall back to settings if modal bootstrapping fails.
-      this.openSettingsTab(settingsTab);
-    }
-  }
-
   hasRecorderService(): boolean {
     return this.recorderService !== null;
   }
@@ -2269,11 +2164,6 @@ export default class SystemSculptPlugin extends Plugin {
     });
 
     phase.complete();
-  }
-
-  // Add getter for version checker service
-  public getVersionCheckerService(): VersionCheckerService {
-    return this.versionCheckerService;
   }
 
   public async updateLastSaveAsNoteFolder(folder: string) {

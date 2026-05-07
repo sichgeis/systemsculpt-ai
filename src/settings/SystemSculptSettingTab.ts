@@ -2,7 +2,6 @@ import { App, PluginSettingTab, Setting, Notice, setIcon, ButtonComponent, Platf
 import { SYSTEMSCULPT_WEBSITE } from "../constants/externalServices";
 import { showPopup } from "../core/ui";
 import SystemSculptPlugin from "../main";
-import { VersionInfo } from "../services/VersionCheckerService";
 import { buildSettingsIndexFromRoot } from "./SettingsSearchIndex";
 import { buildSettingsTabConfigs } from "./SettingsTabRegistry";
 import { decorateRestoreDefaultsButton, RESTORE_DEFAULTS_COPY } from "./uiHelpers";
@@ -185,7 +184,7 @@ async display(): Promise<void> {
       .onClick(async () => {
         button.setDisabled(true);
         try {
-          await this.checkForUpdates(true);
+          this.updateVersionDisplay({ currentVersion: this.plugin.manifest.version, latestVersion: this.plugin.manifest.version, hasUpdate: false });
         } finally {
           button.setDisabled(false);
         }
@@ -435,34 +434,18 @@ async display(): Promise<void> {
       text: `v${currentVersion} (checking...)`
     });
 
-    // Check for updates
-    await this.checkForUpdates();
+    this.updateVersionDisplay({ currentVersion, latestVersion: currentVersion, hasUpdate: false });
   }
 
   /**
    * Check for updates and update the UI
    */
-  private async checkForUpdates(forceRefresh = false) {
-    if (!this.versionInfoContainer) return;
-
-    try {
-      const versionInfo = await this.plugin.getVersionCheckerService().checkVersion(forceRefresh);
-      this.updateVersionDisplay(versionInfo);
-    } catch (error) {
-
-      const versionText = this.versionInfoContainer.querySelector(".ss-version-pill") as HTMLElement | null;
-      if (versionText) {
-        versionText.setText(`v${this.plugin.manifest.version} (check failed)`);
-        versionText.removeClass("ss-version-pill--latest", "ss-version-pill--outdated", "ss-version-pill--checking");
-        versionText.addClass("ss-version-pill--error");
-      }
-    }
-  }
+  private async checkForUpdates(forceRefresh = false) {}
 
   /**
    * Update the version display with the version info
    */
-  private updateVersionDisplay(versionInfo: VersionInfo) {
+  private updateVersionDisplay(versionInfo: { currentVersion: string; latestVersion: string; hasUpdate: boolean; isLatest?: boolean; updateUrl?: string }) {
     if (!this.versionInfoContainer) return;
 
     let versionText = this.versionInfoContainer.querySelector(".ss-version-pill") as HTMLElement | null;

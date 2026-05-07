@@ -229,15 +229,6 @@ export class CommandManager {
   }
 
   private registerOpenCreditsBalance() {
-    this.plugin.addCommand({
-      id: "open-credits-balance",
-      name: "Open Credits & Usage",
-      callback: async () => {
-        await this.plugin.openCreditsBalanceModal({
-          settingsTab: "overview",
-        });
-      },
-    });
   }
 
 

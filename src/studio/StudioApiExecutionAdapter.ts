@@ -3,10 +3,6 @@ import type SystemSculptPlugin from "../main";
 import { resolveSystemSculptApiBaseUrl } from "../utils/urlHelpers";
 import { AgentSessionClient } from "../services/agent-v2/AgentSessionClient";
 import { StreamingService } from "../services/StreamingService";
-import {
-  SystemSculptImageGenerationService,
-  type SystemSculptImageInput,
-} from "../services/canvasflow/SystemSculptImageGenerationService";
 import type {
   StudioApiAdapter,
   StudioImageGenerationRequest,
@@ -156,7 +152,7 @@ type VaultBinaryAdapter = {
 export class StudioApiExecutionAdapter implements StudioApiAdapter {
   private readonly streamer = new StreamingService();
   private readonly sessionClient: AgentSessionClient;
-  private imageClient: SystemSculptImageGenerationService | null = null;
+  private imageClient: any = null;
   private textTurnQueue: Promise<void> = Promise.resolve();
   private localPiTextTurnQueue: Promise<void> = Promise.resolve();
 
@@ -217,24 +213,8 @@ export class StudioApiExecutionAdapter implements StudioApiAdapter {
     return licenseKey;
   }
 
-  private ensureImageClient(): SystemSculptImageGenerationService {
-    const baseUrl = this.apiBaseUrl();
-    const licenseKey = this.licenseKey();
-    if (!this.imageClient) {
-      this.imageClient = new SystemSculptImageGenerationService({
-        baseUrl,
-        licenseKey,
-        pluginVersion: this.plugin.manifest.version,
-      });
-      return this.imageClient;
-    }
-
-    this.imageClient = new SystemSculptImageGenerationService({
-      baseUrl,
-      licenseKey,
-      pluginVersion: this.plugin.manifest.version,
-    });
-    return this.imageClient;
+  private ensureImageClient(): any {
+    throw new Error("Hosted Studio image generation is unavailable in this fork.");
   }
 
   private refreshSessionConfig(): void {
@@ -290,9 +270,9 @@ export class StudioApiExecutionAdapter implements StudioApiAdapter {
   }
 
   private async uploadInputImagesForStudioGeneration(
-    imageClient: SystemSculptImageGenerationService,
+    imageClient: any,
     assets: StudioImageGenerationRequest["inputImages"]
-  ): Promise<SystemSculptImageInput[]> {
+  ): Promise<any[]> {
     const inputAssets = Array.isArray(assets) ? assets : [];
     if (inputAssets.length === 0) {
       return [];
@@ -323,8 +303,8 @@ export class StudioApiExecutionAdapter implements StudioApiAdapter {
         sha256: asset.hash,
       }))
     );
-    const uploadByIndex = new Map(preparedUploads.input_uploads.map((item) => [item.index, item]));
-    const uploadedInputRefs: Extract<SystemSculptImageInput, { type: "uploaded" }>[] = [];
+    const uploadByIndex = new Map<number, any>(((preparedUploads as any).input_uploads || []).map((item: any) => [item.index, item]));
+    const uploadedInputRefs: any[] = [];
 
     for (let idx = 0; idx < normalizedAssets.length; idx += 1) {
       const localAsset = normalizedAssets[idx];
@@ -524,7 +504,7 @@ export class StudioApiExecutionAdapter implements StudioApiAdapter {
     const startedAtMs = Date.now();
 
     for (let attempt = 1; attempt <= STUDIO_IMAGE_RETRY_MAX_ATTEMPTS; attempt += 1) {
-      let create: Awaited<ReturnType<SystemSculptImageGenerationService["createGenerationJob"]>>;
+      let create: any;
       try {
         create = await imageClient.createGenerationJob(
           {
@@ -551,7 +531,7 @@ export class StudioApiExecutionAdapter implements StudioApiAdapter {
         throw new Error(fullMessage);
       }
 
-      let completed: Awaited<ReturnType<SystemSculptImageGenerationService["waitForGenerationJob"]>>;
+      let completed: any;
       try {
         completed = await imageClient.waitForGenerationJob(create.job.id, {
           pollUrl: create.poll_url,

@@ -1,4 +1,3 @@
-import { SYSTEMSCULPT_API_ENDPOINTS } from "../../constants/api";
 import { normalizePiTools } from "./PiToolAdapter";
 
 export type AgentSessionRequest = {
@@ -149,7 +148,7 @@ export class AgentSessionClient {
     );
 
     const turnResponse = await this.requestFn({
-      url: this.endpoint(SYSTEMSCULPT_API_ENDPOINTS.AGENT.SESSION_TURNS(sessionId)),
+      url: this.endpoint(`/agent/sessions/${sessionId}/turns`),
       method: "POST",
       headers: {
         ...this.defaultHeaders,
@@ -178,7 +177,7 @@ export class AgentSessionClient {
     if (existing) return existing;
 
     const response = await this.requestFn({
-      url: this.endpoint(SYSTEMSCULPT_API_ENDPOINTS.AGENT.SESSIONS),
+      url: this.endpoint("/agent/sessions"),
       method: "POST",
       headers: {
         ...this.defaultHeaders,

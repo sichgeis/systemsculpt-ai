@@ -1,21 +1,18 @@
-import {
-  type SystemSculptPrepareInputImageUploadsResponse,
-  SystemSculptImageGenerationService,
-  type SystemSculptCreateGenerationJobRequest,
-  type SystemSculptCreateGenerationJobResponse,
-  type SystemSculptGenerationJobResponse,
-} from "./SystemSculptImageGenerationService";
+export type CanvasFlowPrepareInputImageUploadsResponse = any;
+export type CanvasFlowCreateGenerationJobRequest = any;
+export type CanvasFlowCreateGenerationJobResponse = any;
+export type CanvasFlowGenerationJobResponse = any;
 
 export type CanvasFlowImageGenerationClient = {
   createGenerationJob: (
-    request: SystemSculptCreateGenerationJobRequest,
+    request: CanvasFlowCreateGenerationJobRequest,
     options?: { idempotencyKey?: string }
-  ) => Promise<SystemSculptCreateGenerationJobResponse>;
+  ) => Promise<CanvasFlowCreateGenerationJobResponse>;
   prepareInputImageUploads: (inputImages: Array<{
     mime_type: string;
     size_bytes: number;
     sha256: string;
-  }>) => Promise<SystemSculptPrepareInputImageUploadsResponse>;
+  }>) => Promise<CanvasFlowPrepareInputImageUploadsResponse>;
   uploadPreparedInputImage: (options: {
     uploadUrl: string;
     mimeType: string;
@@ -31,9 +28,9 @@ export type CanvasFlowImageGenerationClient = {
       pollUrl?: string;
       initialPollDelayMs?: number;
       signal?: AbortSignal;
-      onUpdate?: (job: SystemSculptGenerationJobResponse) => void;
+      onUpdate?: (job: CanvasFlowGenerationJobResponse) => void;
     }
-  ) => Promise<SystemSculptGenerationJobResponse>;
+  ) => Promise<CanvasFlowGenerationJobResponse>;
   downloadImage: (url: string) => Promise<{ arrayBuffer: ArrayBuffer; contentType?: string }>;
 };
 
@@ -44,5 +41,14 @@ export type CanvasFlowImageGenerationClientFactory = (options: {
 }) => CanvasFlowImageGenerationClient;
 
 export const createDefaultCanvasFlowImageGenerationClient: CanvasFlowImageGenerationClientFactory = (options) => {
-  return new SystemSculptImageGenerationService(options);
+  const unavailable = async (): Promise<never> => {
+    throw new Error("Hosted image generation is unavailable in this fork.");
+  };
+  return {
+    createGenerationJob: unavailable,
+    prepareInputImageUploads: unavailable,
+    uploadPreparedInputImage: unavailable,
+    waitForGenerationJob: unavailable,
+    downloadImage: unavailable,
+  };
 };

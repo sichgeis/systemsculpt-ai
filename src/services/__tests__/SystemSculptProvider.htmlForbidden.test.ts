@@ -23,7 +23,7 @@ describe("SystemSculptProvider HTML 403 handling", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     let error: any;
     const promise = provider.generateEmbeddings(["hello"]).catch((caught) => {

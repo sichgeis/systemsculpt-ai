@@ -4,7 +4,6 @@ import type { SystemSculptSettingTab } from "./SystemSculptSettingTab";
 import {
   type ImageGenerationServerCatalogModel,
 } from "../services/canvasflow/ImageGenerationModelCatalog";
-import { SystemSculptImageGenerationService } from "../services/canvasflow/SystemSculptImageGenerationService";
 import { queueCanvasFlowLastUsedPatch } from "../services/canvasflow/CanvasFlowPromptDefaults";
 
 export async function displayImageGenerationTabContent(containerEl: HTMLElement, tabInstance: SystemSculptSettingTab) {
@@ -256,14 +255,8 @@ async function syncImageGenerationModelCatalog(
     return cached;
   }
 
-  const service = new SystemSculptImageGenerationService({
-    baseUrl: plugin.settings.serverUrl,
-    licenseKey,
-  });
-
   try {
-    const response = await service.listModels();
-    const supportedModels = Array.isArray(response.models) ? response.models : [];
+    const supportedModels: ImageGenerationServerCatalogModel[] = [];
     if (supportedModels.length === 0) {
       throw new Error("No managed image generation capabilities were returned by the server.");
     }

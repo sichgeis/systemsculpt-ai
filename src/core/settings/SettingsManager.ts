@@ -56,6 +56,8 @@ export class SettingsManager {
     if (typeof migratedSettings.embeddingsVectorFormatVersion !== "number" || !Number.isFinite(migratedSettings.embeddingsVectorFormatVersion)) {
       migratedSettings.embeddingsVectorFormatVersion = DEFAULT_SETTINGS.embeddingsVectorFormatVersion;
     }
+
+    this.removeHostedBackendSettings(migratedSettings);
     
     // Remove old embeddings stats if they exist (from old system)
     if ('cachedEmbeddingStats' in migratedSettings) {
@@ -204,6 +206,44 @@ export class SettingsManager {
     }
     
     return migratedSettings as SystemSculptSettings;
+  }
+
+  private removeHostedBackendSettings(settings: any): void {
+    const clearNativeModel = (value: unknown): string => {
+      if (typeof value !== "string") return "";
+      const trimmed = value.trim();
+      if (!trimmed) return "";
+      return trimmed === "systemsculpt" || trimmed.startsWith("systemsculpt@@") || trimmed.startsWith("systemsculpt/")
+        ? ""
+        : trimmed;
+    };
+
+    settings.licenseKey = "";
+    settings.licenseValid = false;
+    settings.serverUrl = "";
+    settings.enableSystemSculptProvider = false;
+    settings.useSystemSculptAsFallback = false;
+    settings.showUpdateNotifications = false;
+    settings.imageGenerationDefaultModelId = "";
+    settings.imageGenerationLastUsedModelId = clearNativeModel(settings.imageGenerationLastUsedModelId);
+    settings.imageGenerationModelCatalogCache = null;
+    settings.transcriptionProvider = "custom";
+    settings.embeddingsProvider = "custom";
+    settings.selectedProvider = settings.selectedProvider === "systemsculpt" ? "all" : settings.selectedProvider;
+    settings.selectedModelId = clearNativeModel(settings.selectedModelId);
+    settings.defaultTemplateModelId = clearNativeModel(settings.defaultTemplateModelId);
+    settings.titleGenerationProviderId = clearNativeModel(settings.titleGenerationProviderId);
+    settings.titleGenerationModelId = clearNativeModel(settings.titleGenerationModelId);
+    settings.postProcessingProviderId = clearNativeModel(settings.postProcessingProviderId);
+    settings.postProcessingModelId = clearNativeModel(settings.postProcessingModelId);
+
+    if (settings.activeProvider?.type === "native" || settings.activeProvider?.id === "systemsculpt") {
+      settings.activeProvider = { ...DEFAULT_SETTINGS.activeProvider };
+    }
+
+    if (Array.isArray(settings.selectedModelProviders)) {
+      settings.selectedModelProviders = settings.selectedModelProviders.filter((id: unknown) => id !== "systemsculpt");
+    }
   }
 
   /**
@@ -582,26 +622,7 @@ export class SettingsManager {
       delete (validatedSettings as any).cachedEmbeddingStats;
     }
 
-    // Ensure server URL is a string and properly matches development mode
-    const currentServerUrl = validatedSettings.serverUrl;
-    
-    // Import development mode constants
-    const { API_BASE_URL } = require('../../constants/api');
-    const correctUrl = API_BASE_URL.replace('/api/v1', ''); // Remove the API path suffix
-    
-    if (typeof currentServerUrl !== 'string' || currentServerUrl.trim() === '') {
-      validatedSettings.serverUrl = correctUrl;
-    } 
-    // Check for mode mismatches and auto-correct them
-    else if (currentServerUrl.includes('localhost') && correctUrl.includes('api.systemsculpt.com')) {
-      validatedSettings.serverUrl = correctUrl;
-    }
-    else if (currentServerUrl.includes('api.systemsculpt.com') && correctUrl.includes('localhost')) {
-      validatedSettings.serverUrl = correctUrl;
-    }
-    else {
-      // Server URL validation passed - silent success
-    }
+    this.removeHostedBackendSettings(validatedSettings);
 
     const defaultWorkflowEngine = createDefaultWorkflowEngineSettings();
     const providedWorkflowEngine = validatedSettings.workflowEngine;

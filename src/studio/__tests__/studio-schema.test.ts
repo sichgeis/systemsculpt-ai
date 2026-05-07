@@ -42,14 +42,14 @@ describe("Studio schema", () => {
     policy.grants.push({
       id: "grant_1",
       capability: "network",
-      scope: { allowedDomains: ["api.systemsculpt.com"] },
+      scope: { allowedDomains: ["example.test"] },
       grantedAt: new Date().toISOString(),
       grantedByUser: true,
     });
     const parsed = parseStudioPolicy(JSON.stringify(policy));
     expect(parsed.schema).toBe("studio.policy.v1");
     expect(parsed.grants.length).toBe(1);
-    expect(parsed.grants[0].scope.allowedDomains).toContain("api.systemsculpt.com");
+    expect(parsed.grants[0].scope.allowedDomains).toContain("example.test");
   });
 
   it("normalizes valid group colors and rejects invalid group colors", () => {

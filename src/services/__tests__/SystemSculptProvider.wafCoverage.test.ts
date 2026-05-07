@@ -16,7 +16,7 @@ describe("SystemSculptProvider WAF signal coverage", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
     sanitizeTextForApi = (provider as any).sanitizeTextForApi.bind(provider);
   });
 

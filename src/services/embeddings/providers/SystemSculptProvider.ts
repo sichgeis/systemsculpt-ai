@@ -7,7 +7,6 @@
 
 import { httpRequest, isHostTemporarilyDisabled, HttpResponseShim } from '../../../utils/httpClient';
 import { EmbeddingsProvider, EmbeddingsGenerateOptions, EmbeddingBatchMetadata } from '../types';
-import { API_BASE_URL, SYSTEMSCULPT_API_ENDPOINTS, SYSTEMSCULPT_API_HEADERS } from '../../../constants/api';
 import { resolveSystemSculptApiBaseUrl } from '../../../utils/urlHelpers';
 import { tokenCounter } from '../../../utils/TokenCounter';
 import { errorLogger } from '../../../utils/errorLogger';
@@ -27,7 +26,7 @@ export class SystemSculptProvider implements EmbeddingsProvider {
   private readonly maxTextsPerRequest = 25;
   public lastModelChanged: boolean = false;
   private readonly baseUrl: string;
-  private readonly embeddingsEndpoint = SYSTEMSCULPT_API_ENDPOINTS.EMBEDDINGS.GENERATE;
+  private readonly embeddingsEndpoint = "";
   private readonly pluginVersion: string;
   private static readonly FORBIDDEN_LOG_WINDOW_MS = 60 * 1000;
 
@@ -37,7 +36,7 @@ export class SystemSculptProvider implements EmbeddingsProvider {
 
   constructor(
     private licenseKey: string,
-    baseUrl: string = API_BASE_URL,
+    baseUrl: string = "",
     public model?: string,
     pluginVersion: string = ''
   ) {
@@ -531,7 +530,8 @@ export class SystemSculptProvider implements EmbeddingsProvider {
 
       try {
         const requestHeaders = {
-          ...SYSTEMSCULPT_API_HEADERS.WITH_LICENSE(this.licenseKey),
+          "Content-Type": "application/json",
+          Accept: "application/json",
           ...(this.pluginVersion ? { 'x-plugin-version': this.pluginVersion } : {}),
           'Idempotency-Key': this.buildIdempotencyKey(
             payloadTexts,

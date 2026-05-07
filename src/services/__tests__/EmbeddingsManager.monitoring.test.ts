@@ -85,7 +85,7 @@ function createPluginStub() {
     embeddingsQuietPeriodMs: 500,
     licenseKey: 'fake-license',
     licenseValid: true,
-    serverUrl: 'https://api.systemsculpt.com/api/v1',
+    serverUrl: 'https://example.test/api/v1',
   };
 
   const vault = {

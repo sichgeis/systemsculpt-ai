@@ -23,7 +23,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings(["This contains phpunit and should be sanitized."]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);
@@ -49,7 +49,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings([`This contains a blob ${blob} and should be redacted.`]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);
@@ -78,7 +78,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings([`This contains a PEM block:\n\n${pemBlock}\n\nand should be redacted.`]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);
@@ -104,7 +104,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings(["Run curl https://example.com to fetch data."]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);
@@ -129,7 +129,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings(["Use wget to download the file."]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);
@@ -154,7 +154,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings(["This document references CVE-2023-12345."]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);
@@ -179,7 +179,7 @@ describe("SystemSculptProvider request sanitization", () => {
     });
 
     const { SystemSculptProvider } = await import("../embeddings/providers/SystemSculptProvider");
-    const provider = new SystemSculptProvider("fake-license", "https://api.systemsculpt.com/api/v1");
+    const provider = new SystemSculptProvider("fake-license", "https://example.test/api/v1");
 
     const embeddings = await provider.generateEmbeddings(["Check /etc/passwd for user accounts."]);
     expect(embeddings).toEqual([[0.1, 0.2, 0.3]]);

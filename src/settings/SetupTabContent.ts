@@ -338,11 +338,7 @@ function renderAccountSection(root: HTMLElement, tabInstance: SystemSculptSettin
     creditsSetting.addButton((button) => {
       button
         .setButtonText('Details')
-        .onClick(async () => {
-          await plugin.openCreditsBalanceModal({
-            settingsTab: "overview",
-          });
-        });
+        .onClick(() => new Notice("Hosted credits are unavailable in this fork.", 5000));
     });
 
     creditsSetting.addButton((button) => {

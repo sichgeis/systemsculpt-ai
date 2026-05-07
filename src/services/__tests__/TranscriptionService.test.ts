@@ -29,7 +29,7 @@ jest.mock("../PlatformContext", () => ({
 jest.mock("../SystemSculptService", () => ({
   SystemSculptService: {
     getInstance: jest.fn(() => ({
-      baseUrl: "https://api.systemsculpt.com",
+      baseUrl: "imported://example.test",
     })),
   },
 }));

@@ -91,6 +91,7 @@ export interface SystemSculptSettings {
    */
   embeddingsVectorFormatVersion?: number;
 
+  /** Retired hosted backend fields kept only for loading old settings. */
   licenseKey: string;
   licenseValid: boolean;
   suppressLicenseUpgradePrompt: boolean;
@@ -324,13 +325,13 @@ export interface SystemSculptSettings {
    * Whether the SystemSculpt provider is enabled
    * When disabled, the plugin won't use SystemSculpt models even with a valid license
    */
-  enableSystemSculptProvider: boolean;
+  enableSystemSculptProvider?: boolean;
   
   /**
    * Whether to use SystemSculpt as the fallback provider when other providers fail
    * When enabled, calls will fall back to SystemSculpt if the primary provider fails
    */
-  useSystemSculptAsFallback: boolean;
+  useSystemSculptAsFallback?: boolean;
 
   /**
    * Percentage of the model context window to use (0-100)
@@ -407,7 +408,7 @@ export interface SystemSculptSettings {
   /** When enabled, write a JSON sidecar next to each generated image. */
   imageGenerationSaveMetadataSidecar: boolean;
   /** Cached server model metadata merged into Studio model pickers. */
-  imageGenerationModelCatalogCache: ImageGenerationModelCatalogCache | null;
+  imageGenerationModelCatalogCache?: ImageGenerationModelCatalogCache | null;
 
   /**
    * Studio project defaults.
@@ -585,7 +586,7 @@ Raw transcript:`,
   postProcessingPromptType: "preset",
   postProcessingPromptPresetId: "transcript-cleaner",
   postProcessingPromptFilePath: "",
-  postProcessingProviderId: "systemsculpt", // Default to native provider
+  postProcessingProviderId: "",
   postProcessingModelId: "", // Default to empty; logic should handle fallback if unset
   cleanTranscriptionOutput: false,
   autoSubmitAfterTranscription: false,
@@ -593,7 +594,7 @@ Raw transcript:`,
   showTranscriptionFormatChooserInModal: true,
   showVideoRecordButtonInChat: true,
   showVideoRecordingPermissionPopup: true,
-  transcriptionProvider: "systemsculpt",
+  transcriptionProvider: "custom",
   customTranscriptionEndpoint: "",
   customTranscriptionApiKey: "",
   customTranscriptionModel: "whisper-large-v3",
@@ -602,7 +603,7 @@ Raw transcript:`,
   showVisionModelsOnly: false,
   showTopPicksOnly: false,
   selectedProvider: "all",
-  serverUrl: "", // Will be set from API_BASE_URL on first load
+  serverUrl: "",
   attachmentsDirectory: "SystemSculpt/Attachments",
   extractionsDirectory: "SystemSculpt/Extractions",
   systemPromptsDirectory: "SystemSculpt/System Prompts",
@@ -625,7 +626,7 @@ Raw transcript:`,
   titleGenerationPrompt: DEFAULT_TITLE_GENERATION_PROMPT,
   titleGenerationPromptType: "precise",
   titleGenerationPromptPath: "",
-  titleGenerationProviderId: "systemsculpt", // Default to native provider
+  titleGenerationProviderId: "",
   titleGenerationModelId: "", // Default to empty; logic should handle fallback if unset
   /**
    * Custom provider defaults
@@ -641,9 +642,9 @@ Raw transcript:`,
   favoriteChats: [],
 
   activeProvider: {
-    id: "systemsculpt",
-    name: "SystemSculpt",
-    type: "native",
+    id: "",
+    name: "",
+    type: "custom",
   },
 
   /**
@@ -673,7 +674,7 @@ Raw transcript:`,
   logLevel: LogLevel.WARNING,
   debugMode: false,
   preserveReasoningVerbatim: true,
-  showUpdateNotifications: true,
+  showUpdateNotifications: false,
 
   /**
    * MCP (Model Context Protocol) defaults
@@ -689,7 +690,7 @@ Raw transcript:`,
 
   canvasFlowEnabled: false,
 
-  imageGenerationDefaultModelId: "openai/gpt-5-image-mini",
+  imageGenerationDefaultModelId: "",
   imageGenerationLastUsedModelId: "",
   imageGenerationLastUsedCount: 1,
   imageGenerationLastUsedAspectRatio: "",
@@ -714,7 +715,7 @@ Raw transcript:`,
     ignoreChatHistory: true,
     respectObsidianExclusions: true
   },
-  embeddingsProvider: 'systemsculpt',
+  embeddingsProvider: 'custom',
   embeddingsCustomEndpoint: '',
   embeddingsCustomApiKey: '',
   embeddingsCustomModel: '',

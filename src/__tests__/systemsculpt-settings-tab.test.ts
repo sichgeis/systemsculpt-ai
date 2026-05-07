@@ -64,7 +64,7 @@ const createPluginStub = () => {
       subscriptionStatus: "",
     },
     getSettingsManager: jest.fn(() => settingsManager),
-    getVersionCheckerService: jest.fn(() => versionChecker),
+    getLegacyUpdateChecker: jest.fn(() => versionChecker),
     getSettingsManagerInstance: settingsManager,
     getVersionCheckerInstance: versionChecker,
     emitter: {

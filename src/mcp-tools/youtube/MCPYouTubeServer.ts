@@ -1,7 +1,6 @@
 import type { App } from "obsidian";
 import type SystemSculptPlugin from "../../main";
 import type { MCPToolInfo } from "../../types/mcp";
-import { YouTubeTranscriptService } from "../../services/YouTubeTranscriptService";
 
 export interface YouTubeTranscriptParams {
   url: string;
@@ -53,11 +52,9 @@ export const YOUTUBE_TOOL_DISPLAY_DESCRIPTIONS: Record<string, string> = {
  */
 export class MCPYouTubeServer {
   private plugin: SystemSculptPlugin;
-  private transcriptService: YouTubeTranscriptService;
 
   constructor(plugin: SystemSculptPlugin, _app: App) {
     this.plugin = plugin;
-    this.transcriptService = YouTubeTranscriptService.getInstance(plugin);
   }
 
   /**
@@ -114,16 +111,7 @@ export class MCPYouTubeServer {
     }
 
     try {
-      const result = await this.transcriptService.getTranscript(params.url, {
-        lang: params.lang,
-      });
-
-      return {
-        success: true,
-        text: result.text,
-        lang: result.lang,
-        metadata: result.metadata,
-      };
+      throw new Error("YouTube transcript proxy is unavailable in this fork.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("[MCPYouTubeServer] Transcript extraction failed:", message);

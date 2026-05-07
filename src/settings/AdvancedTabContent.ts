@@ -59,8 +59,6 @@ export function displayAdvancedTabContent(containerEl: HTMLElement, tabInstance:
                             await plugin.getSettingsManager().updateSettings({
                                 showUpdateNotifications: false
                             });
-                            // Notify version checker to stop checking
-                            plugin.versionCheckerService?.onUpdateNotificationsDisabled();
                             new Notice("Update notifications disabled. You can re-enable them anytime in Advanced settings.");
                         } else {
                             // User cancelled, reset toggle
@@ -71,8 +69,6 @@ export function displayAdvancedTabContent(containerEl: HTMLElement, tabInstance:
                         await plugin.getSettingsManager().updateSettings({
                             showUpdateNotifications: true
                         });
-                        // Notify version checker to start checking again
-                        plugin.versionCheckerService?.onUpdateNotificationsEnabled();
                         new Notice("Update notifications enabled.");
                     }
                 });

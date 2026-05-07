@@ -1,6 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile, Notice, App, MarkdownRenderer, setIcon, Component } from "obsidian";
 import { SystemSculptService, type CreditsBalanceSnapshot } from "../../services/SystemSculptService";
-import { registerWebResearchTools } from "../../services/web/registerWebResearchTools";
 import { ChatMessage, ChatRole, MultiPartContent, SystemSculptSettings } from "../../types";
 import { ChatStorageService } from "./ChatStorageService";
 import { ScrollManagerService } from "./ScrollManagerService";
@@ -159,12 +158,6 @@ export class ChatView extends ItemView {
 
     if (!this.toolCallManager) {
       this.toolCallManager = new ToolCallManager(new MCPService(this.plugin, this.app), this);
-      // PI extension: web research tools (web_search, web_fetch)
-      registerWebResearchTools({
-        toolCallManager: this.toolCallManager,
-        plugin: this.plugin,
-        chatView: this,
-      });
     }
 
     if (!this.chatStorage) {
@@ -597,24 +590,10 @@ export class ChatView extends ItemView {
     return this.creditsBalanceRefreshPromise;
   }
 
-  public async openCreditsBalanceModal(): Promise<void> {
-    await this.plugin.openCreditsBalanceModal({
-      initialBalance: this.creditsBalance,
-      onBalanceUpdated: async (balance) => {
-        this.creditsBalance = balance;
-        try {
-          await this.updateCreditsIndicator();
-        } catch {}
-      },
-      settingsTab: "overview",
-    });
-  }
-
   public hasConfiguredProvider(): boolean {
     const settings = this.plugin.settings;
-    const hasSystemSculpt = !!(settings.enableSystemSculptProvider && settings.licenseKey?.trim() && settings.licenseValid === true);
     const hasCustomProvider = Array.isArray(settings.customProviders) && settings.customProviders.some((provider) => provider?.isEnabled);
-    return hasSystemSculpt || hasCustomProvider;
+    return hasCustomProvider;
   }
 
   public openSetupTab(targetTab: string = "overview"): void {
